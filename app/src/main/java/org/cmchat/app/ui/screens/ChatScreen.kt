@@ -1,6 +1,5 @@
 package org.cmchat.app.ui.screens
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -14,27 +13,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.cmchat.app.ui.components.CerberusMark
 import org.cmchat.app.ui.theme.*
-
-@Composable
-private fun CerberusEye(color: Color) {
-    Canvas(Modifier.size(16.dp)) {
-        val w = size.width; val h = size.height
-        drawOval(color = color, topLeft = Offset(0f, h * 0.22f),
-            size = Size(w, h * 0.56f), style = Stroke(width = w * 0.09f))
-        drawCircle(color = color, radius = w * 0.17f, center = Offset(w / 2, h / 2))
-    }
-}
 
 @Composable
 fun ChatScreen(name: String, onBack: () -> Unit) {
@@ -63,7 +46,7 @@ fun ChatScreen(name: String, onBack: () -> Unit) {
             Row(Modifier.weight(1f).padding(11.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically) {
-                CerberusEye(CmBlue)
+                CerberusMark(on = true, sizeDp = 17)
                 Spacer(Modifier.width(6.dp))
                 Text("Cerberus 90m", color = CmBlue, fontFamily = Nunito, fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold)
@@ -113,15 +96,12 @@ private fun Bubble(text: String, mine: Boolean) {
 @Composable
 private fun OfflineBubble() {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-        Box(Modifier.widthIn(max = 260.dp)
-            .drawBehind {
-                drawRoundRect(color = CmRed,
-                    style = Stroke(width = 2f,
-                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f), 0f)),
-                    cornerRadius = CornerRadius(16.dp.toPx(), 16.dp.toPx()))
-            }
+        Box(Modifier.widthIn(max = 260.dp).clip(RoundedCornerShape(16.dp))
+            .background(CmRed.copy(alpha = 0.10f))
+            .border(1.5.dp, CmRed, RoundedCornerShape(16.dp))
             .padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Text("Offline. Retry?", color = CmRed, fontFamily = Nunito, fontSize = 15.sp)
+            Text("Offline. Retry?", color = CmRed, fontFamily = Nunito, fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold)
         }
     }
 }
