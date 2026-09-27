@@ -17,8 +17,8 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Build release APK
-        run: ./gradlew :app:assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle-build.log
+      - name: Build debug and release APKs
+        run: ./gradlew :app:assembleDebug :app:assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle-build.log
 
       - name: Upload build log
         if: always()
@@ -27,7 +27,14 @@ jobs:
           name: gradle-build-log
           path: gradle-build.log
 
-      - name: Upload APK
+      - name: Upload debug APK
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cm-chat-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Upload release APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
