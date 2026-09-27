@@ -30,6 +30,7 @@ jobs:
 
       - name: Build APK
         run: |
+          set -o pipefail
           yes | buildozer -v android debug 2>&1 | tee buildozer-full.log
 
       - name: Upload full build log
