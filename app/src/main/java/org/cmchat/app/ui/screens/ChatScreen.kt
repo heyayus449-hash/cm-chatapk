@@ -43,17 +43,17 @@ fun ChatScreen(name: String, onBack: () -> Unit) {
             .clip(RoundedCornerShape(14.dp))
             .border(1.dp, CmTextFaint, RoundedCornerShape(14.dp)),
             verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.weight(1f).padding(11.dp),
-                horizontalArrangement = Arrangement.Center,
+            Row(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically) {
-                CerberusMark(on = true, sizeDp = 17)
-                Spacer(Modifier.width(6.dp))
-                Text("Cerberus 90m", color = CmBlue, fontFamily = Nunito, fontSize = 12.sp,
+                CerberusMark(on = true, sizeDp = 40)
+                Spacer(Modifier.width(10.dp))
+                Text("Cerberus 90m", color = CmBlue, fontFamily = Nunito, fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold)
             }
-            Box(Modifier.width(1.dp).height(22.dp).background(CmTextFaint))
+            Box(Modifier.width(1.dp).height(40.dp).background(CmTextFaint))
             Box(Modifier.weight(1f).padding(11.dp), contentAlignment = Alignment.Center) {
-                Text("Timer Off", color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp,
+                Text("Timer Off", color = CmTextDim, fontFamily = Nunito, fontSize = 13.sp,
                     fontWeight = FontWeight.SemiBold)
             }
         }

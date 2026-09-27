@@ -35,7 +35,7 @@ fun CerberusMark(on: Boolean, sizeDp: Int = 18, modifier: Modifier = Modifier) {
             val L = hypot(dx, dy).let { if (it == 0f) 1f else it }
             return Offset(fr.x + dx / L * d, fr.y + dy / L * d)
         }
-        val sw = 1f * s
+        val sw = 1.2f * s
         val round = Stroke(width = sw, cap = StrokeCap.Round, join = StrokeJoin.Round)
 
         if (on) {
