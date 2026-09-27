@@ -5,7 +5,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -13,64 +15,166 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import org.cmchat.app.ui.components.CmChatLogo
 import org.cmchat.app.ui.theme.*
+import org.cmchat.app.vault.UnlockResult
+import org.cmchat.app.vault.VaultData
+import org.cmchat.app.vault.VaultManager
+
+private enum class Phase { UNLOCK, NEW_PIN, CONFIRM_PIN, NAME_FACE }
 
 @Composable
-fun LockScreen(onUnlock: () -> Unit = {}) {
-    var pin by remember { mutableStateOf("") }
+fun LockScreen(manager: VaultManager, onUnlocked: (VaultData) -> Unit) {
+    // Recomputed after a duress wipe so the screen falls back to first-run.
+    var epoch by remember { mutableStateOf(0) }
+    val firstRun = remember(epoch) { manager.firstRunNeeded() }
+
+    var phase by remember(epoch) { mutableStateOf(if (firstRun) Phase.NEW_PIN else Phase.UNLOCK) }
+    var pin by remember(epoch) { mutableStateOf("") }
+    var firstPin by remember(epoch) { mutableStateOf("") }
+    var faceName by remember(epoch) { mutableStateOf("") }
+    var status by remember(epoch) { mutableStateOf("") }
+    var wrongCount by remember(epoch) { mutableStateOf(0) }
+    var lockedFor by remember(epoch) { mutableStateOf(0) }
+
+    LaunchedEffect(lockedFor, epoch) {
+        while (lockedFor > 0) {
+            delay(1000)
+            lockedFor -= 1
+        }
+    }
+
+    fun submitPin(entered: String) {
+        when (phase) {
+            Phase.NEW_PIN -> {
+                if (!VaultManager.isValidNewPin(entered)) {
+                    status = "Pick a 6-digit PIN that isn't a palindrome"
+                } else {
+                    firstPin = entered; status = ""; phase = Phase.CONFIRM_PIN
+                }
+            }
+            Phase.CONFIRM_PIN -> {
+                if (entered != firstPin) {
+                    status = "PINs didn't match — start again"; firstPin = ""; phase = Phase.NEW_PIN
+                } else {
+                    status = ""; phase = Phase.NAME_FACE
+                }
+            }
+            Phase.UNLOCK -> {
+                when (val r = manager.unlock(entered)) {
+                    is UnlockResult.Success -> { wrongCount = 0; onUnlocked(r.data) }
+                    UnlockResult.Duress -> { epoch += 1 } // silent: back to first-run
+                    UnlockResult.WrongPin -> {
+                        wrongCount += 1
+                        status = "Wrong PIN"
+                        if (wrongCount >= 5) lockedFor = (wrongCount - 4) * 10
+                    }
+                }
+            }
+            Phase.NAME_FACE -> {}
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize().background(CmBackground).padding(28.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(70.dp))
+        Spacer(Modifier.height(60.dp))
         CmChatLogo(size = 30)
         Spacer(Modifier.height(10.dp))
-        Text("Face: Wanderer", color = CmTextDim, fontFamily = Nunito, fontSize = 14.sp)
+        Text(
+            when (phase) {
+                Phase.NEW_PIN -> "Create a 6-digit PIN"
+                Phase.CONFIRM_PIN -> "Confirm your PIN"
+                Phase.NAME_FACE -> "Name your first Face"
+                Phase.UNLOCK -> "Face: Wanderer"
+            },
+            color = CmTextDim, fontFamily = Nunito, fontSize = 14.sp,
+        )
 
-        Spacer(Modifier.height(40.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            repeat(6) { i ->
-                Box(
-                    Modifier.size(16.dp).clip(CircleShape)
-                        .background(if (i < pin.length) CmBlue else CmCard)
-                )
-            }
-        }
+        Spacer(Modifier.height(28.dp))
 
-        Spacer(Modifier.height(48.dp))
-        val keys = listOf("1","2","3","4","5","6","7","8","9","","0","<")
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            for (row in 0..3) {
-                Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    for (col in 0..2) {
-                        val k = keys[row * 3 + col]
-                        Box(
-                            Modifier.size(80.dp).clip(RoundedCornerShape(16.dp))
-                                .background(if (k == "") CmBackground else CmCard)
-                                .then(
-                                    if (k == "") Modifier
-                                    else Modifier.clickable {
-                                        when (k) {
-                                            "<" -> if (pin.isNotEmpty()) pin = pin.dropLast(1)
-                                            else -> if (pin.length < 6) pin += k
-                                        }
-                                        if (pin.length == 6) { onUnlock(); pin = "" }
-                                    }
-                                ),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            if (k.isNotEmpty())
-                                Text(k, color = CmText, fontFamily = Nunito, fontSize = 22.sp, fontWeight = FontWeight.SemiBold)
-                        }
+        if (phase == Phase.NAME_FACE) {
+            OutlinedTextField(
+                value = faceName,
+                onValueChange = { faceName = it.take(24) },
+                singleLine = true,
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = CmCard, unfocusedContainerColor = CmCard,
+                    focusedTextColor = CmText, unfocusedTextColor = CmText,
+                    cursorColor = CmBlue,
+                ),
+            )
+            Spacer(Modifier.height(20.dp))
+            Box(
+                Modifier.clip(RoundedCornerShape(16.dp)).background(CmBlue)
+                    .clickable {
+                        val data = manager.createVault(firstPin, faceName)
+                        onUnlocked(data)
                     }
+                    .padding(horizontal = 28.dp, vertical = 12.dp),
+            ) {
+                Text("Create", color = CmBackground, fontFamily = Nunito,
+                    fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            }
+        } else {
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                repeat(6) { i ->
+                    Box(Modifier.size(16.dp).clip(CircleShape)
+                        .background(if (i < pin.length) CmBlue else CmCard))
+                }
+            }
+            Spacer(Modifier.height(18.dp))
+            Text(
+                if (lockedFor > 0) "Try again in ${lockedFor}s" else status,
+                color = if (lockedFor > 0 || status.isNotEmpty()) CmRed else CmBackground,
+                fontFamily = Nunito, fontSize = 13.sp,
+            )
+            Spacer(Modifier.height(18.dp))
+            Keypad(enabled = lockedFor <= 0) { k ->
+                if (k == "<") {
+                    if (pin.isNotEmpty()) pin = pin.dropLast(1)
+                } else if (pin.length < 6) {
+                    pin += k
+                }
+                if (pin.length == 6) {
+                    val entered = pin; pin = ""
+                    submitPin(entered)
                 }
             }
         }
 
         Spacer(Modifier.weight(1f))
         Text("Ghost mode ready", color = CmGreen, fontFamily = Nunito, fontSize = 15.sp)
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun Keypad(enabled: Boolean, onKey: (String) -> Unit) {
+    val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "<")
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        for (row in 0..3) {
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                for (col in 0..2) {
+                    val k = keys[row * 3 + col]
+                    Box(
+                        Modifier.size(74.dp).clip(RoundedCornerShape(16.dp))
+                            .background(if (k == "") CmBackground else CmCard)
+                            .then(
+                                if (k == "" || !enabled) Modifier
+                                else Modifier.clickable { onKey(k) }
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        if (k.isNotEmpty())
+                            Text(k, color = if (enabled) CmText else CmTextFaint,
+                                fontFamily = Nunito, fontSize = 22.sp,
+                                fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
     }
 }

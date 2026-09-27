@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -44,4 +45,18 @@ dependencies {
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.material3:material3")
+
+    // Crypto: libsodium via lazysodium (Argon2id + secretbox). No hand-rolled crypto.
+    implementation("com.goterl:lazysodium-android:5.2.0@aar")
+    implementation("net.java.dev.jna:jna:5.19.1@aar")
+
+    // Vault serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+
+    // Unit tests run on the host JVM; lazysodium-java bundles a desktop
+    // libsodium so the same CryptoManager/Vault code is testable in CI.
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("com.goterl:lazysodium-java:5.2.0")
+    testImplementation("net.java.dev.jna:jna:5.19.1")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 }

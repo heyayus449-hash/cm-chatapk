@@ -21,7 +21,8 @@ import org.cmchat.app.ui.theme.*
 
 data class Contact(val name: String, val color: Color, val unread: Boolean)
 
-private val fakeCircle = listOf(
+/** Sample Circle shown only when the vault has no contacts yet. */
+val sampleCircle = listOf(
     Contact("Nightingale", CmBlue, true),
     Contact("Quartz", CmOrange, false),
     Contact("Driftwood", CmGreen, false),
@@ -30,7 +31,11 @@ private val fakeCircle = listOf(
 )
 
 @Composable
-fun CircleScreen(onOpenChat: (Contact) -> Unit, onOpenSettings: () -> Unit) {
+fun CircleScreen(
+    contacts: List<Contact>,
+    onOpenChat: (Contact) -> Unit,
+    onOpenSettings: () -> Unit,
+) {
     Column(Modifier.fillMaxSize().background(CmBackground)) {
         Row(
             Modifier.fillMaxWidth().padding(20.dp),
@@ -51,7 +56,7 @@ fun CircleScreen(onOpenChat: (Contact) -> Unit, onOpenSettings: () -> Unit) {
             Modifier.weight(1f).padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(fakeCircle) { c ->
+            items(contacts) { c ->
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
                         .background(CmCard).clickable { onOpenChat(c) }
