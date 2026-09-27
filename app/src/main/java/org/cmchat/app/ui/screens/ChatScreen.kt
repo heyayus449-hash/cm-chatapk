@@ -9,7 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -21,6 +21,7 @@ import org.cmchat.app.ui.theme.*
 
 @Composable
 fun ChatScreen(name: String, onBack: () -> Unit) {
+    var cerberusOn by remember { mutableStateOf(true) }
     Column(Modifier.fillMaxSize().background(CmBackground)) {
         Box(Modifier.fillMaxWidth().padding(14.dp)) {
             Text("‹ Circle", color = CmBlue, fontFamily = Nunito, fontSize = 15.sp,
@@ -43,13 +44,15 @@ fun ChatScreen(name: String, onBack: () -> Unit) {
             .clip(RoundedCornerShape(14.dp))
             .border(1.dp, CmTextFaint, RoundedCornerShape(14.dp)),
             verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 10.dp),
+            Row(Modifier.weight(1f).clickable { cerberusOn = !cerberusOn }
+                .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically) {
-                CerberusMark(on = true, sizeDp = 40)
+                CerberusMark(on = cerberusOn, sizeDp = 40)
                 Spacer(Modifier.width(10.dp))
-                Text("Cerberus 90m", color = CmBlue, fontFamily = Nunito, fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold)
+                Text(if (cerberusOn) "Cerberus 90m" else "Cerberus off",
+                    color = if (cerberusOn) CmBlue else CmRed, fontFamily = Nunito,
+                    fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
             Box(Modifier.width(1.dp).height(40.dp).background(CmTextFaint))
             Box(Modifier.weight(1f).padding(11.dp), contentAlignment = Alignment.Center) {
