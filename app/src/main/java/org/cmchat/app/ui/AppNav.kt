@@ -9,8 +9,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.cmchat.app.ui.screens.ChatScreen
 import org.cmchat.app.ui.screens.CircleScreen
 import org.cmchat.app.ui.screens.LockScreen
+import org.cmchat.app.ui.screens.SettingsScreen
 import org.cmchat.app.ui.theme.*
 
 private sealed class Nav {
@@ -29,21 +31,7 @@ fun AppNav() {
             onOpenChat = { nav = Nav.Chat(it.name) },
             onOpenSettings = { nav = Nav.Settings },
         )
-        is Nav.Chat -> Placeholder("Chat: ${n.name}") { nav = Nav.Circle }
-        Nav.Settings -> Placeholder("Settings") { nav = Nav.Circle }
-    }
-}
-
-@Composable
-private fun Placeholder(label: String, onBack: () -> Unit) {
-    Column(
-        Modifier.fillMaxSize().background(CmBackground).padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text("< Back", color = CmBlue, fontFamily = Nunito, fontSize = 16.sp,
-            modifier = Modifier.align(Alignment.Start).clickable { onBack() })
-        Spacer(Modifier.weight(1f))
-        Text(label, color = CmText, fontFamily = Nunito, fontSize = 20.sp)
-        Spacer(Modifier.weight(1f))
+        is Nav.Chat -> ChatScreen(n.name) { nav = Nav.Circle }
+        Nav.Settings -> SettingsScreen { nav = Nav.Circle }
     }
 }
