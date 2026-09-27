@@ -38,6 +38,7 @@ jobs:
         run: |
           set -o pipefail
           yes | buildozer -v android debug 2>&1 | tee buildozer-full.log
+          exit ${PIPESTATUS[1]}
 
       - name: Upload full build log
         if: always()
