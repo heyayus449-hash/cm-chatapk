@@ -12,7 +12,8 @@ continue.
 - Font: Nunito (OFL) bundled as static regular/semibold/bold TTFs in
   `res/font`; license in `licenses/Nunito-OFL.txt`.
 - Theme: Material3 dark, palette in `ui/theme/Color.kt`.
-- CI: `.github/workflows/build.yml` — setup-java 17 temurin, builds both
+- CI: `.github/workflows/build.yml` — setup-java 21 temurin (lazysodium-java
+  used by the host unit tests needs JDK 21+), runs the unit tests then builds both
   `assembleDebug` and `assembleRelease`, uploads `cm-chat-debug-apk`
   (installs on any phone, debug-signed), `cm-chat-apk` (release, unsigned
   for now), and the gradle build log. Green as of the icon commit.
