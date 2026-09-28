@@ -22,6 +22,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onOpenMyServer: () -> Unit = {},
     onOpenMyId: () -> Unit = {},
+    onWipeEverything: () -> Unit = {},
 ) {
     var textSize by remember { mutableStateOf(0f) }
     Column(Modifier.fillMaxSize().background(CmBackground)) {
@@ -62,7 +63,7 @@ fun SettingsScreen(
         }
 
         Box(Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(14.dp))
-            .background(CmRed.copy(alpha = 0.15f)).clickable { }.padding(14.dp),
+            .background(CmRed.copy(alpha = 0.15f)).clickable { onWipeEverything() }.padding(14.dp),
             contentAlignment = Alignment.Center) {
             Text("Wipe Everything Now", color = CmRed, fontFamily = Nunito,
                 fontSize = 15.sp, fontWeight = FontWeight.SemiBold)

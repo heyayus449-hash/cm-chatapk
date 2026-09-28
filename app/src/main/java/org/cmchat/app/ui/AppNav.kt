@@ -1,8 +1,14 @@
 package org.cmchat.app.ui
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import org.cmchat.app.chat.ChatStore
 import org.cmchat.app.crypto.CmId
 import org.cmchat.app.tor.ServerController
 import org.cmchat.app.tor.TorService
@@ -46,6 +52,31 @@ fun AppNav() {
     var pin by remember { mutableStateOf<String?>(null) }
 
     val torStatus by TorService.status.collectAsState()
+    var showWipeConfirm by remember { mutableStateOf(false) }
+
+    if (showWipeConfirm) {
+        AlertDialog(
+            onDismissRequest = { showWipeConfirm = false },
+            title = { Text("Wipe everything?") },
+            text = { Text("Deletes all app data (vault, keys, Circle, caches) and then asks Android to uninstall the app.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showWipeConfirm = false
+                    manager.wipe()
+                    ChatStore.clearAll()
+                    runCatching { context.cacheDir.deleteRecursively() }
+                    runCatching { context.codeCacheDir.deleteRecursively() }
+                    runCatching {
+                        context.startActivity(
+                            Intent(Intent.ACTION_DELETE, Uri.parse("package:${context.packageName}"))
+                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        )
+                    }
+                }) { Text("Wipe") }
+            },
+            dismissButton = { TextButton(onClick = { showWipeConfirm = false }) { Text("Cancel") } },
+        )
+    }
 
     // Keep the message service configured with the active Face + contacts.
     LaunchedEffect(data) {
@@ -125,6 +156,7 @@ fun AppNav() {
             onBack = { nav = Nav.Circle },
             onOpenMyServer = { nav = Nav.MyServer },
             onOpenMyId = { nav = Nav.MyId },
+            onWipeEverything = { showWipeConfirm = true },
         )
         Nav.MyId -> MyIdScreen(cmId = myCmId(data), onBack = { nav = Nav.Settings })
         Nav.Knock -> KnockScreen(
