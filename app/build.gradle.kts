@@ -17,6 +17,22 @@ android {
         versionName = "0.1"
     }
 
+    // Optional stable-key signing: active only when CI (or a local build) sets
+    // CMCHAT_KEYSTORE to an existing keystore path. Nothing secret is committed;
+    // without it, release builds are simply unsigned.
+    val ksPath = System.getenv("CMCHAT_KEYSTORE")
+    val hasKeystore = ksPath != null && file(ksPath).exists()
+    signingConfigs {
+        if (hasKeystore) {
+            create("release") {
+                storeFile = file(ksPath!!)
+                storePassword = System.getenv("CMCHAT_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("CMCHAT_KEY_ALIAS")
+                keyPassword = System.getenv("CMCHAT_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -25,6 +41,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            if (hasKeystore) signingConfig = signingConfigs.getByName("release")
         }
     }
 

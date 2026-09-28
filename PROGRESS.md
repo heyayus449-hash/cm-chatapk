@@ -205,8 +205,10 @@ hardening step.
   - Debug + release (R8) both build; tests 19/19.
 
 ## Signing (still needs the repo owner)
-See "Signing TODO" above — release APKs remain unsigned until the four
-keystore secrets are added in GitHub. Test with the debug APK meanwhile.
+The workflow is now wired for stable-key signing (see "Signing TODO" below
+for the exact click-by-click steps). Until the four keystore secrets are
+added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
+and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
 ## Next
 - On device (two phones): PIN + Face, wait for Tor "Online", My ID/QR,
@@ -217,12 +219,43 @@ keystore secrets are added in GitHub. Test with the debug APK meanwhile.
   review (FLAG_SECURE, R8 log stripping, data-extraction rules).
 
 ## Signing TODO (needs the repo owner to click in GitHub)
-Release APKs are currently unsigned. To ship a stable-key signed release
-so new versions install over old ones, the owner must add repo secrets
-(Settings -> Secrets and variables -> Actions -> New repository secret):
-KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD. Never commit
-the keystore to this public repo. Steps will be detailed when signing is
-wired into the workflow.
+The build + CI are wired: `app/build.gradle.kts` reads a keystore from the
+`CMCHAT_KEYSTORE` env var (gated on the file existing), and the workflow
+decodes it from a secret and passes the passwords in. So all that's left is
+adding four secrets. **The keystore is never committed** — it lives only as
+a GitHub secret. Do this once:
+
+1. **Make a keystore** (on your own computer, needs a JDK/`keytool`):
+   ```
+   keytool -genkeypair -v -keystore cmchat.keystore \
+     -alias cmchat -keyalg RSA -keysize 2048 -validity 10000
+   ```
+   It asks for a keystore password and a key password (you can use the same
+   one) and a name/org (anything). Keep `cmchat.keystore` and the passwords
+   somewhere safe and private — losing them means future versions can't
+   install over old ones. **Do not add the keystore to git.**
+
+2. **Base64-encode it** into a text blob for the secret:
+   - macOS/Linux: `base64 -i cmchat.keystore | tr -d '\n' > cmchat.b64`
+   - Windows PowerShell:
+     `[Convert]::ToBase64String([IO.File]::ReadAllBytes("cmchat.keystore")) > cmchat.b64`
+   Open `cmchat.b64` and copy all of it.
+
+3. **Add the four secrets** on GitHub: repo → **Settings** → (left menu)
+   **Secrets and variables** → **Actions** → **New repository secret**.
+   Add each of these (name exactly, value = yours), clicking "Add secret"
+   after each:
+   - `KEYSTORE_BASE64` — the whole base64 blob from step 2
+   - `KEYSTORE_PASSWORD` — the keystore password from step 1
+   - `KEY_ALIAS` — `cmchat` (or whatever `-alias` you used)
+   - `KEY_PASSWORD` — the key password from step 1
+
+4. **Re-run the build**: Actions tab → latest run → "Re-run all jobs" (or
+   just push any commit). The release artifact `cm-chat-apk` will now be
+   `app-release.apk` (signed). Delete `cmchat.b64` afterwards.
+
+If the secrets are absent the build still succeeds; the release is just
+unsigned. Never paste the keystore or passwords into code, commits, or issues.
 
 ## Known issues
 - Text input and the settings slider are visual-only until later phases.

@@ -17,7 +17,21 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      # Decode the release keystore only if the repo secrets are set. Without
+      # them the release build is unsigned; nothing secret is stored in the repo.
+      - name: Decode signing keystore (if configured)
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        if: ${{ env.KEYSTORE_BASE64 != '' }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/cmchat.keystore"
+          echo "CMCHAT_KEYSTORE=$RUNNER_TEMP/cmchat.keystore" >> "$GITHUB_ENV"
+
       - name: Run unit tests and build debug and release APKs
+        env:
+          CMCHAT_KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          CMCHAT_KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          CMCHAT_KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
           set +e
           ./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleRelease --no-daemon --stacktrace 2>&1 | tee gradle-build.log
