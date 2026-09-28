@@ -77,6 +77,36 @@ class CryptoManager(private val ls: LazySodium) {
         return kp.publicKey.asHexString to kp.secretKey.asHexString
     }
 
+    private val boxNative get() = ls as Box.Native
+
+    /** crypto_box seal: my secret key + peer public key. Returns nonce||ciphertext. */
+    fun boxSeal(plain: ByteArray, peerPubKeyHex: String, mySecretKeyHex: String): ByteArray {
+        val nonce = ls.randomBytesBuf(Box.NONCEBYTES)
+        val cipher = ByteArray(plain.size + Box.MACBYTES)
+        val ok = boxNative.cryptoBoxEasy(
+            cipher, plain, plain.size.toLong(), nonce,
+            hexToBytes(peerPubKeyHex), hexToBytes(mySecretKeyHex),
+        )
+        check(ok) { "box seal failed" }
+        return nonce + cipher
+    }
+
+    /** crypto_box open; returns null if authentication fails. */
+    fun boxOpen(blob: ByteArray, peerPubKeyHex: String, mySecretKeyHex: String): ByteArray? {
+        if (blob.size < Box.NONCEBYTES + Box.MACBYTES) return null
+        val nonce = blob.copyOfRange(0, Box.NONCEBYTES)
+        val cipher = blob.copyOfRange(Box.NONCEBYTES, blob.size)
+        val plain = ByteArray(cipher.size - Box.MACBYTES)
+        val ok = boxNative.cryptoBoxOpenEasy(
+            plain, cipher, cipher.size.toLong(), nonce,
+            hexToBytes(peerPubKeyHex), hexToBytes(mySecretKeyHex),
+        )
+        return if (ok) plain else null
+    }
+
     private fun toHex(b: ByteArray): String =
         b.joinToString("") { "%02x".format(it) }
+
+    private fun hexToBytes(hex: String): ByteArray =
+        ByteArray(hex.length / 2) { hex.substring(it * 2, it * 2 + 2).toInt(16).toByte() }
 }

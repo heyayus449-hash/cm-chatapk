@@ -83,11 +83,27 @@ hardening step.
     the notification, and bootstrap-% wiring can only be verified on a real
     device (no emulator in CI); this commit is compile- + unit-test-green.
 
+- Phase 3.3/3.4 cores (testable, done):
+  - `crypto/CmId.kt` — CM-ID = "cm1:" + base32([onionLen][onion][32-byte
+    identity pubkey]); encode/decode with a self-contained RFC4648 base32.
+  - `crypto/CryptoManager` — added crypto_box seal/open (X25519 +
+    XChaCha20? no: crypto_box = X25519+XSalsa20-Poly1305) for frames.
+  - `transport/Frame.kt` — FrameType enum (KNOCK, KNOCK_ACCEPT, MSG, ACK,
+    STATUS, ERASE_CHAT, PING, PONG) + FrameCodec seal/open (nonce||cipher
+    of [type][payload]); unopenable frames dropped.
+  - `transport/Transport.kt` — length-prefixed read/write, SOCKS5-through-
+    Tor connect with UNRESOLVED host (Tor resolves .onion), loopback
+    ServerSocket. Socket paths are compile-only until wired on device.
+  - Tests now 8/8: + CM-ID round-trip, malformed CM-ID rejected, frame
+    seal/open round-trip, tampered frame rejected.
+
 ## Next
-- Phase 3.2 onion service per Face (v3 HS -> local ServerSocket), onion
-  key in the vault, separate from the messaging identity key.
-- 3.3 transport (SOCKS5 out, ServerSocket in, length-prefixed crypto_box
-  frames), 3.4 CM-ID + My ID/QR, 3.5 Knock/Accept, 3.6 My Server screen.
+- Phase 3.2 onion service per Face (v3 HS via jtorctl addOnion -> local
+  ServerSocket), onion key stored in the vault, separate from the
+  messaging identity key.
+- 3.4 My ID screen (CM-ID text + QR, Copy/Share), 3.5 Knock/Accept
+  (paste/scan + camera), 3.6 My Server screen. These need the onion
+  address from 3.2 and on-device Tor.
 - Later: chat over Tor, Cerberus/Kill timer, file transfer, hardening
   review (FLAG_SECURE, R8 log stripping, data-extraction rules).
 
