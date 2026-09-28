@@ -38,6 +38,7 @@ object ServerController {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var serverSocket: ServerSocket? = null
+    /** onion address without the ".onion" suffix, for DEL_ONION on stop. */
     private var currentServiceId: String? = null
 
     /** Set by MessageService: handles each accepted incoming connection. */
@@ -51,6 +52,7 @@ object ServerController {
     fun start(
         faceName: String,
         existingOnionKey: String?,
+        existingOnionAddress: String? = null,
         onPublished: (OnionPublish) -> Unit,
     ) {
         _status.value = ServerStatus.Starting
@@ -71,20 +73,23 @@ object ServerController {
                         "Port=80,127.0.0.1:${server.localPort}",
                 )
                 val reply = control.addOnion(keyArg, ports)
-                // Log the full parsed reply (keys + values) so a 5xx / missing
-                // ServiceID is visible on the Diagnostics screen. PrivateKey is
-                // this device's own onion key (already in the vault), not a peer
-                // secret, so logging that it was returned is safe; we log only
-                // its presence, not the blob.
+                // jtorctl parses the ADD_ONION reply into keys "onionAddress"
+                // (the base32 host, no scheme, no ".onion") and "onionPrivKey"
+                // ("ED25519-V3:..."). Log presence only — the priv key is this
+                // device's own onion key (already in the vault), never a blob.
                 org.cmchat.app.diag.Diag.i("onion", "ADD_ONION reply keys=${reply.keys}")
-                val serviceId = reply.entries.firstOrNull { it.key.equals("ServiceID", true) }?.value
+                fun v(name: String) = reply.entries.firstOrNull { it.key.equals(name, true) }?.value
+                // New key first; fall back to the stored address on recreate
+                // (a recreate reply may omit the address).
+                val addr = v("onionAddress")
+                    ?: existingOnionAddress?.removeSuffix(".onion")
                     ?: throw IllegalStateException(
-                        "ADD_ONION returned no ServiceID; reply=${reply.entries.joinToString { "${it.key}=${redact(it.key, it.value)}" }}"
+                        "ADD_ONION returned no onionAddress; reply=${reply.entries.joinToString { "${it.key}=${redact(it.key, it.value)}" }}"
                     )
-                currentServiceId = serviceId
-                val privateKey = reply.entries.firstOrNull { it.key.equals("PrivateKey", true) }?.value
+                val priv = v("onionPrivKey") ?: existingOnionKey
+                currentServiceId = addr
                 acceptLoop(server)
-                OnionPublish("$serviceId.onion", privateKey)
+                OnionPublish("$addr.onion", priv)
             }
             result.onSuccess { pub ->
                 onPublished(pub)
@@ -109,9 +114,14 @@ object ServerController {
         }
     }
 
-    fun restart(faceName: String, existingOnionKey: String?, onPublished: (OnionPublish) -> Unit) {
+    fun restart(
+        faceName: String,
+        existingOnionKey: String?,
+        existingOnionAddress: String? = null,
+        onPublished: (OnionPublish) -> Unit,
+    ) {
         stop()
-        start(faceName, existingOnionKey, onPublished)
+        start(faceName, existingOnionKey, existingOnionAddress, onPublished)
     }
 
     /** Connect to my own onion through Tor; report OK/FAIL and elapsed ms. */
@@ -128,9 +138,10 @@ object ServerController {
         ok to ms
     }
 
-    /** Never log the onion PrivateKey blob; show presence only. */
+    /** Never log the onion private-key blob; show presence only. */
     private fun redact(key: String, value: String): String =
-        if (key.equals("PrivateKey", true)) "<${value.substringBefore(':')}:redacted>" else value
+        if (key.contains("PrivKey", true) || key.equals("PrivateKey", true))
+            "<${value.substringBefore(':')}:redacted>" else value
 
     private fun acceptLoop(server: ServerSocket) {
         scope.launch {

@@ -194,11 +194,13 @@ hardening step.
     Flag CrashCatcher.ENABLED (currently true) — MUST be set false / removed
     before any real-safety release (it is the only on-disk exception trace).
   - Onion: ADD_ONION runs off the main thread (ServerController IO scope,
-    so no ANR); logs the command + full parsed reply keys; case-insensitive
-    ServiceID/PrivateKey lookup; stores the returned "ED25519-V3:<blob>"
-    verbatim in the vault and reuses it on later runs; a missing ServiceID
-    / 5xx is surfaced as a clear Failed(...) error (shown on My Server) and
-    logged to Diagnostics. PrivateKey blob is never logged (redacted).
+    so no ANR); logs the command + full parsed reply keys. **Fix:** jtorctl
+    returns the reply under keys `onionAddress` (base32 host, no scheme) and
+    `onionPrivKey` ("ED25519-V3:..."), NOT "ServiceID" — that key mismatch
+    was the whole publish bug. Now reads those keys; onion = addr + ".onion".
+    Stores the priv key verbatim and reuses it next run (recreate falls back
+    to the stored address if the reply omits it). A missing onionAddress /
+    5xx is surfaced as a clear Failed(...) error. Priv-key blob never logged.
   - Errors wired into Diag at Tor status, onion publish/self-test, knock
     send, and dropped frames. Launcher label -> Cyrillic "СM-Chat"
     (sorts to the bottom); app_name stays Latin CM-Chat.

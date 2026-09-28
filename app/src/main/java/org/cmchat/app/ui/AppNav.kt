@@ -128,12 +128,17 @@ fun AppNav() {
         val p = pin ?: return@LaunchedEffect
         val face = d.faces.firstOrNull() ?: return@LaunchedEffect
         if (torStatus is TorStatus.Online) {
-            ServerController.start(face.name, face.onionKey) { pub ->
-                if (pub.newPrivateKey != null && face.onionKey == null) {
+            ServerController.start(face.name, face.onionKey, face.onionAddress) { pub ->
+                val keyChanged = pub.newPrivateKey != null && face.onionKey == null
+                val addrChanged = face.onionAddress != pub.onion
+                if (keyChanged || addrChanged) {
                     val updated = d.copy(
                         faces = d.faces.map {
                             if (it.id == face.id)
-                                it.copy(onionKey = pub.newPrivateKey, onionAddress = pub.onion)
+                                it.copy(
+                                    onionKey = pub.newPrivateKey ?: it.onionKey,
+                                    onionAddress = pub.onion,
+                                )
                             else it
                         }
                     )
@@ -186,11 +191,11 @@ fun AppNav() {
             val face = data?.faces?.firstOrNull()
             MyServerScreen(
                 onStart = {
-                    if (face != null) ServerController.start(face.name, face.onionKey) {}
+                    if (face != null) ServerController.start(face.name, face.onionKey, face.onionAddress) {}
                 },
                 onStop = { ServerController.stop() },
                 onRestart = {
-                    if (face != null) ServerController.restart(face.name, face.onionKey) {}
+                    if (face != null) ServerController.restart(face.name, face.onionKey, face.onionAddress) {}
                 },
                 onBack = { nav = Nav.Settings },
             )
