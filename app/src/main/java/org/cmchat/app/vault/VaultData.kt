@@ -28,6 +28,7 @@ data class ContactRec(
     val name: String,
     val colorArgb: Long,
     val faceId: String,
+    val cmId: String? = null,
 )
 
 @Serializable

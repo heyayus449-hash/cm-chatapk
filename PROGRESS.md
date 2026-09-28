@@ -135,13 +135,33 @@ hardening step.
     not exercised in CI. KNOCK_ACCEPT delivery + persisting accepted
     contacts land with R3 chat.
 
+- R3 (chat), compile + test green:
+  - chat/ChatModels + ChatStore: RAM-only per-contact threads (never
+    written to disk), message state SENDING/SENT/DELIVERED/OFFLINE,
+    self-timer (off/30s/5m/1h counted from SEEN), last-seen buckets
+    (<=60 "recently", <=180 "a while ago", else nothing), peer status,
+    Team Hour, purgeExpired, clearAll.
+  - MessageService: sendText/retry/sendErase/sendStatus + KNOCK_ACCEPT;
+    handleIncoming now also boxOpens MSG (-> store + ACK), ACK (->
+    DELIVERED), STATUS (-> peer status), ERASE_CHAT (-> erase) from known
+    contacts. Accepted knocks are persisted to the vault as contacts
+    (ContactRec gained cmId); Circle lists real contacts and chats key on
+    the contact CM-ID.
+  - ChatScreen rebound to ChatStore: real bubbles with delivery labels,
+    dashed red Offline-Retry bubble with a once/30s countdown, self-timer
+    chips, Erase (both sides), Team Hour line, peer status + last seen.
+  - Tests 12/12: + last-seen bucketing, self-timer expiry, timer labels.
+  - Device-only: real Tor delivery/ACK, and Team Hour cross-device sync
+    (currently local; rides a later frame). Status is sent to contacts,
+    never your own is shown.
+
 ## Next
-- R3 chat: 1:1 text over Tor (MSG/ACK), RAM-only; offline retry bubble;
-  Erase (ERASE_CHAT); self-timer; status; last seen (per chat); Team Hour.
-  Wire KNOCK_ACCEPT + save accepted contacts to the vault.
-- R4 guardians/files/tools/hardening. R5 (optional) Bouncy Castle swap.
+- R4 guardians/files/tools/hardening: Cerberus real idle wipe, Kill Timer,
+  Wipe Now (+ uninstall intent), files w/ progress + metadata scrub, tools
+  dock (calculator/notes/converter), FLAG_SECURE + R8 log-strip + data
+  extraction rules. R5 (optional) Bouncy Castle swap.
 - On-device: Tor ONLINE, onion publish, My Server self-test, a real
-  knock A<->B (not verifiable in CI — no emulator).
+  knock + chat A<->B (not verifiable in CI — no emulator).
 - Later: chat over Tor, Cerberus/Kill timer, file transfer, hardening
   review (FLAG_SECURE, R8 log stripping, data-extraction rules).
 

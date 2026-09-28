@@ -24,7 +24,7 @@ import org.cmchat.app.transport.MessageService
 import org.cmchat.app.ui.components.CmChatLogo
 import org.cmchat.app.ui.theme.*
 
-data class Contact(val name: String, val color: Color, val unread: Boolean)
+data class Contact(val name: String, val color: Color, val unread: Boolean, val cmId: String? = null)
 
 /** Sample Circle shown only when the vault has no contacts yet. */
 val sampleCircle = listOf(

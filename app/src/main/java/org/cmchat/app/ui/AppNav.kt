@@ -23,7 +23,7 @@ import org.cmchat.app.vault.VaultData
 private sealed class Nav {
     object Lock : Nav()
     object Circle : Nav()
-    data class Chat(val name: String) : Nav()
+    data class Chat(val name: String, val cmId: String?) : Nav()
     object Settings : Nav()
     object MyServer : Nav()
     object MyId : Nav()
@@ -57,8 +57,25 @@ fun AppNav() {
             myIdentityPubHex = face.publicKey,
             myIdentitySecHex = face.secretKey,
             myCmId = myCmId(d),
-            knownContactCmIds = emptyList(),
+            knownContactCmIds = d.contacts.mapNotNull { it.cmId },
         )
+        // Persist an accepted knock as a contact in the vault.
+        MessageService.onContactAccepted = accepted@{ req ->
+            val p = pin ?: return@accepted
+            val cur = data ?: return@accepted
+            if (cur.contacts.none { it.cmId == req.cmId }) {
+                val contact = org.cmchat.app.vault.ContactRec(
+                    id = manager.crypto.randomHex(8),
+                    name = req.displayName,
+                    colorArgb = 0xFF6FB8D9,
+                    faceId = face.id,
+                    cmId = req.cmId,
+                )
+                val updated = cur.copy(contacts = cur.contacts + contact)
+                runCatching { manager.save(p, updated) }
+                data = updated
+            }
+        }
     }
 
     // Once Tor is ONLINE, publish the active Face's onion service. If Tor
@@ -93,16 +110,16 @@ fun AppNav() {
         }
         Nav.Circle -> {
             val contacts = data?.contacts?.takeIf { it.isNotEmpty() }
-                ?.map { Contact(it.name, Color(it.colorArgb), unread = false) }
+                ?.map { Contact(it.name, Color(it.colorArgb), unread = false, cmId = it.cmId) }
                 ?: sampleCircle
             CircleScreen(
                 contacts = contacts,
-                onOpenChat = { nav = Nav.Chat(it.name) },
+                onOpenChat = { nav = Nav.Chat(it.name, it.cmId) },
                 onOpenSettings = { nav = Nav.Settings },
                 onKnock = { nav = Nav.Knock },
             )
         }
-        is Nav.Chat -> ChatScreen(n.name) { nav = Nav.Circle }
+        is Nav.Chat -> ChatScreen(n.name, n.cmId) { nav = Nav.Circle }
         Nav.Settings -> SettingsScreen(
             onBack = { nav = Nav.Circle },
             onOpenMyServer = { nav = Nav.MyServer },
