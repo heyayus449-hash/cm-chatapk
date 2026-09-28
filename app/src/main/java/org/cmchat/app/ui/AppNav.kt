@@ -34,6 +34,7 @@ private sealed class Nav {
     object MyServer : Nav()
     object MyId : Nav()
     object Knock : Nav()
+    object Diagnostics : Nav()
     data class Tool(val which: String) : Nav()
 }
 
@@ -55,6 +56,13 @@ fun AppNav() {
     val torStatus by TorService.status.collectAsState()
     var showWipeConfirm by remember { mutableStateOf(false) }
 
+    // Surface a crash from a previous run (debug-phase aid), then delete it.
+    LaunchedEffect(Unit) {
+        org.cmchat.app.diag.CrashCatcher.consume(context)?.let {
+            org.cmchat.app.diag.Diag.e("crash", "previous run crashed:\n$it")
+        }
+    }
+
     if (showWipeConfirm) {
         AlertDialog(
             onDismissRequest = { showWipeConfirm = false },
@@ -65,6 +73,9 @@ fun AppNav() {
                     showWipeConfirm = false
                     manager.wipe()
                     ChatStore.clearAll()
+                    org.cmchat.app.tools.ToolsState.clear()
+                    org.cmchat.app.diag.Diag.clear()
+                    org.cmchat.app.diag.CrashCatcher.delete(context)
                     runCatching { context.cacheDir.deleteRecursively() }
                     runCatching { context.codeCacheDir.deleteRecursively() }
                     runCatching {
@@ -160,7 +171,9 @@ fun AppNav() {
             onOpenMyServer = { nav = Nav.MyServer },
             onOpenMyId = { nav = Nav.MyId },
             onWipeEverything = { showWipeConfirm = true },
+            onOpenDiagnostics = { nav = Nav.Diagnostics },
         )
+        Nav.Diagnostics -> org.cmchat.app.ui.screens.DiagnosticsScreen(onBack = { nav = Nav.Settings })
         Nav.MyId -> MyIdScreen(cmId = myCmId(data), onBack = { nav = Nav.Settings })
         Nav.Knock -> KnockScreen(
             onSend = { cmId, _ ->

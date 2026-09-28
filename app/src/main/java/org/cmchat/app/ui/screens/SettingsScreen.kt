@@ -23,6 +23,7 @@ fun SettingsScreen(
     onOpenMyServer: () -> Unit = {},
     onOpenMyId: () -> Unit = {},
     onWipeEverything: () -> Unit = {},
+    onOpenDiagnostics: () -> Unit = {},
 ) {
     var textSize by remember { mutableStateOf(0f) }
     Column(Modifier.fillMaxSize().background(CmBackground)) {
@@ -62,6 +63,7 @@ fun SettingsScreen(
             ToolToggle("Metadata scrub (strip EXIF/GPS)", org.cmchat.app.settings.AppSettings.metadataScrub)
             ToolToggle("Share my last-seen", org.cmchat.app.settings.AppSettings.shareLastSeen)
             Setting("Panic PIN")
+            Setting("Diagnostics", onClick = onOpenDiagnostics)
             Setting("Verify App Integrity")
             Setting("About / Version")
             Spacer(Modifier.height(4.dp))

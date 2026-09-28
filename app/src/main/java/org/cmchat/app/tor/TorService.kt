@@ -83,7 +83,9 @@ class TorService : Service() {
 
     private val statusReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
-            when (intent.getStringExtra(GpTorService.EXTRA_STATUS)) {
+            val s = intent.getStringExtra(GpTorService.EXTRA_STATUS)
+            org.cmchat.app.diag.Diag.i("tor", "status=$s")
+            when (s) {
                 GpTorService.STATUS_STARTING -> _status.value = TorStatus.Starting
                 GpTorService.STATUS_ON -> _status.value = TorStatus.Online
                 GpTorService.STATUS_STOPPING, GpTorService.STATUS_OFF ->

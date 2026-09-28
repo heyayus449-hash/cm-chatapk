@@ -11,6 +11,7 @@ import org.cmchat.app.ui.theme.CmChatTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        org.cmchat.app.diag.CrashCatcher.install(this)
         // No screenshots, blank in recents, no screen recording.
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         setContent {

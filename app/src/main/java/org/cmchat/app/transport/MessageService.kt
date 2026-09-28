@@ -76,7 +76,8 @@ object MessageService {
                     Messages.json.encodeToString(KnockPayload.serializer(), KnockPayload(myName, myId)).toByteArray())
                 sendRaw(target, c.sealedSeal(inner, target.identityPubKeyHex))
                 true
-            }.getOrDefault(false)
+            }.getOrElse { org.cmchat.app.diag.Diag.e("knock", "send failed", it); false }
+            org.cmchat.app.diag.Diag.i("knock", "sent=$ok")
             withContext(Dispatchers.Main) { onResult(ok) }
         }
     }
@@ -171,7 +172,8 @@ object MessageService {
                     dispatchFromContact(cmId, peer, inner)
                     return@use
                 }
-                // else: silently drop.
+                // Couldn't decrypt with any key -> drop (count only, no content).
+                org.cmchat.app.diag.Diag.droppedFrame()
             }
         }
     }

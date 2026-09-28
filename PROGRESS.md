@@ -182,6 +182,28 @@ hardening step.
   - R5 (Bouncy Castle swap) intentionally NOT done — would risk the green
     crypto; revisit only with device testing.
 
+- Diagnostics + onion ADD_ONION robustness + Cyrillic label:
+  - diag/Diag: RAM-only ring buffer (~200), levels D/I/W/E, StateFlow;
+    mirrors to Logcat in debug (R8 strips it in release); dropped
+    undecryptable frames logged as COUNT only (never content/peer).
+    Cleared on app close and every wipe path (Cerberus/Kill/Wipe Now).
+    Settings -> Diagnostics screen (newest-first, Copy-all, Clear).
+  - diag/CrashCatcher: DEBUG-PHASE aid — a default uncaught-exception
+    handler writes ONE crash file to app-internal storage; shown on the
+    Diagnostics screen next launch then deleted; wiped by every wipe path.
+    Flag CrashCatcher.ENABLED (currently true) — MUST be set false / removed
+    before any real-safety release (it is the only on-disk exception trace).
+  - Onion: ADD_ONION runs off the main thread (ServerController IO scope,
+    so no ANR); logs the command + full parsed reply keys; case-insensitive
+    ServiceID/PrivateKey lookup; stores the returned "ED25519-V3:<blob>"
+    verbatim in the vault and reuses it on later runs; a missing ServiceID
+    / 5xx is surfaced as a clear Failed(...) error (shown on My Server) and
+    logged to Diagnostics. PrivateKey blob is never logged (redacted).
+  - Errors wired into Diag at Tor status, onion publish/self-test, knock
+    send, and dropped frames. Launcher label -> Cyrillic "СM-Chat"
+    (sorts to the bottom); app_name stays Latin CM-Chat.
+  - Debug + release (R8) both build; tests 19/19.
+
 ## Signing (still needs the repo owner)
 See "Signing TODO" above — release APKs remain unsigned until the four
 keystore secrets are added in GitHub. Test with the debug APK meanwhile.

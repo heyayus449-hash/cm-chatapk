@@ -64,21 +64,34 @@ object ServerController {
                 val server = Transport.openServer(0)
                 serverSocket = server
                 val ports = mapOf(80 to "127.0.0.1:${server.localPort}")
-                val reply = if (existingOnionKey != null) {
-                    control.addOnion(existingOnionKey, ports)
-                } else {
-                    control.addOnion("NEW:ED25519-V3", ports)
-                }
-                val serviceId = reply["ServiceID"]
-                    ?: error("no ServiceID in ADD_ONION reply")
+                val keyArg = existingOnionKey ?: "NEW:ED25519-V3"
+                org.cmchat.app.diag.Diag.i(
+                    "onion",
+                    "ADD_ONION ${if (existingOnionKey != null) "ED25519-V3:<stored>" else "NEW:ED25519-V3"} " +
+                        "Port=80,127.0.0.1:${server.localPort}",
+                )
+                val reply = control.addOnion(keyArg, ports)
+                // Log the full parsed reply (keys + values) so a 5xx / missing
+                // ServiceID is visible on the Diagnostics screen. PrivateKey is
+                // this device's own onion key (already in the vault), not a peer
+                // secret, so logging that it was returned is safe; we log only
+                // its presence, not the blob.
+                org.cmchat.app.diag.Diag.i("onion", "ADD_ONION reply keys=${reply.keys}")
+                val serviceId = reply.entries.firstOrNull { it.key.equals("ServiceID", true) }?.value
+                    ?: throw IllegalStateException(
+                        "ADD_ONION returned no ServiceID; reply=${reply.entries.joinToString { "${it.key}=${redact(it.key, it.value)}" }}"
+                    )
                 currentServiceId = serviceId
+                val privateKey = reply.entries.firstOrNull { it.key.equals("PrivateKey", true) }?.value
                 acceptLoop(server)
-                OnionPublish("$serviceId.onion", reply["PrivateKey"])
+                OnionPublish("$serviceId.onion", privateKey)
             }
             result.onSuccess { pub ->
                 onPublished(pub)
+                org.cmchat.app.diag.Diag.i("onion", "published ${pub.onion}")
                 _status.value = ServerStatus.Online(pub.onion, faceName, System.currentTimeMillis())
             }.onFailure { e ->
+                org.cmchat.app.diag.Diag.e("onion", "publish failed", e)
                 _status.value = ServerStatus.Failed(e.message ?: "publish failed")
             }
         }
@@ -109,9 +122,15 @@ object ServerController {
         val ok = runCatching {
             Transport.connectThroughTor(TorService.socksPort(), onion.removeSuffix(".onion"), 80)
                 .use { it.isConnected }
-        }.getOrDefault(false)
-        ok to (System.currentTimeMillis() - start)
+        }.getOrElse { org.cmchat.app.diag.Diag.e("onion", "self-test failed", it); false }
+        val ms = System.currentTimeMillis() - start
+        org.cmchat.app.diag.Diag.i("onion", "self-test ${if (ok) "OK" else "FAIL"} ${ms}ms")
+        ok to ms
     }
+
+    /** Never log the onion PrivateKey blob; show presence only. */
+    private fun redact(key: String, value: String): String =
+        if (key.equals("PrivateKey", true)) "<${value.substringBefore(':')}:redacted>" else value
 
     private fun acceptLoop(server: ServerSocket) {
         scope.launch {
