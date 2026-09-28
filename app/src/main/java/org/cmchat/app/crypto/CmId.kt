@@ -1,17 +1,17 @@
 package org.cmchat.app.crypto
 
-/** Decoded CM-ID: the peer's onion address and identity (crypto_box) public key. */
+/** Decoded CMC-ID: the peer's onion address and identity (crypto_box) public key. */
 data class CmIdData(val onion: String, val identityPubKeyHex: String)
 
 /**
- * CM-ID = "cm1:" + base32( [onionLen][onion ASCII bytes][32-byte identity pubkey] ).
+ * CMC-ID = "cmc1:" + base32( [onionLen][onion ASCII bytes][32-byte identity pubkey] ).
  *
  * The onion address is the endpoint (from the Face's onion service); the
  * identity public key is the separate messaging key used for crypto_box. Both
  * are needed to reach AND to encrypt to a peer.
  */
 object CmId {
-    private const val PREFIX = "cm1:"
+    private const val PREFIX = "cmc1:"
     private const val ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567"
     private const val PUBKEY_LEN = 32
 

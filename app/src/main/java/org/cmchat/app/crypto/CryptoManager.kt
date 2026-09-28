@@ -108,7 +108,7 @@ class CryptoManager(private val ls: LazySodium) {
      * Anonymous sealed box (crypto_box_seal) to a recipient public key. Used
      * for KNOCK: the sender isn't in the recipient's Circle yet, so there's no
      * shared knowledge of the sender's key — the sender stays anonymous until
-     * the recipient opens the knock and learns their CM-ID from inside.
+     * the recipient opens the knock and learns their CMC-ID from inside.
      */
     fun sealedSeal(plain: ByteArray, recipientPubKeyHex: String): ByteArray {
         val cipher = ByteArray(plain.size + Box.SEALBYTES)

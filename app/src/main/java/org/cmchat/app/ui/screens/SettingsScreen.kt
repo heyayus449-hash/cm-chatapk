@@ -59,7 +59,7 @@ fun SettingsScreen(
             ToolToggle("Tool: Calculator", org.cmchat.app.tools.ToolsState.calcEnabled)
             ToolToggle("Tool: Notes", org.cmchat.app.tools.ToolsState.notesEnabled)
             ToolToggle("Tool: Converter", org.cmchat.app.tools.ToolsState.converterEnabled)
-            Setting("My ID / QR", onClick = onOpenMyId)
+            Setting("My CMC-ID / QR", onClick = onOpenMyId)
             ToolToggle("Metadata scrub (strip EXIF/GPS)", org.cmchat.app.settings.AppSettings.metadataScrub)
             ToolToggle("Share my last-seen", org.cmchat.app.settings.AppSettings.shareLastSeen)
             Setting("Panic PIN")

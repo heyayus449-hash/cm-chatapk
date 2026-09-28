@@ -30,9 +30,9 @@ Both people:
    first launch can take **1–3 minutes** while Tor bootstraps and your onion
    service publishes. (Settings → My Server shows the detailed steps and your
    onion address; Settings → Diagnostics shows a live log if something stalls.)
-4. Share your **CM-ID**: Settings → **My ID** shows it as text and a QR, with
-   Copy/Share.
-5. One person taps **+ Knock**, pastes or scans the other's CM-ID, picks a
+4. Share your **CMC-ID**: Settings → **My CMC-ID** shows it as text and a QR,
+   with Copy/Share.
+5. One person taps **+ Knock**, pastes or scans the other's CMC-ID, picks a
    nickname, and sends. The other sees the incoming knock and taps **Accept**.
 6. You're now in each other's Circle — tap a contact and chat.
 
@@ -44,7 +44,7 @@ your own chat as an "Offline. Retry?" bubble until they're back.
 
 Phone A and Phone B, both installed, PIN set, Face created, green dot showing:
 
-1. **A:** Settings → My ID → show the QR. **B:** + Knock → scan A's QR → name
+1. **A:** Settings → My CMC-ID → show the QR. **B:** + Knock → scan A's QR → name
    it → Send. **A:** Accept the knock.
 2. **Text both ways** — check messages show sent → delivered.
 3. **Offline path:** Settings → My Server → **Stop** on A, then send from B.

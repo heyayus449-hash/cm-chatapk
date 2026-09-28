@@ -45,7 +45,7 @@ fun KnockScreen(onSend: (cmId: String, nickname: String) -> Unit, onBack: () -> 
             )
             OutlinedTextField(
                 value = cmId, onValueChange = { cmId = it; error = null },
-                label = { Text("Their CM-ID (cm1:…)", color = CmTextDim) },
+                label = { Text("Their CMC-ID (cmc1:…)", color = CmTextDim) },
                 singleLine = false, colors = colors, modifier = Modifier.fillMaxWidth(),
             )
             Box(Modifier.clip(RoundedCornerShape(14.dp)).background(CmCard)
@@ -66,7 +66,7 @@ fun KnockScreen(onSend: (cmId: String, nickname: String) -> Unit, onBack: () -> 
                     .clickable {
                         val id = cmId.trim()
                         when {
-                            CmId.decode(id) == null -> error = "That doesn't look like a CM-ID"
+                            CmId.decode(id) == null -> error = "That doesn't look like a CMC-ID"
                             nickname.isBlank() -> error = "Pick a nickname"
                             else -> onSend(id, nickname.trim())
                         }

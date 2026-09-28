@@ -212,6 +212,11 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Rename CM-ID -> CMC-ID
+- ID prefix `cm1:` -> `cmc1:` (CmId.PREFIX); all user-facing labels now say
+  "CMC-ID" (My CMC-ID screen + Settings row, Knock hint/error, QR desc).
+  No live users / no back-compat. Tests updated; 19/19.
+
 ## Next
 - On device (two phones): PIN + Face, wait for Tor "Online", My ID/QR,
   Knock/Accept, chat both ways, offline retry, erase, self-timer, status,

@@ -34,7 +34,7 @@ fun MyIdScreen(cmId: String?, onBack: () -> Unit) {
         Box(Modifier.fillMaxWidth().padding(16.dp)) {
             Text("‹ Back", color = CmBlue, fontFamily = Nunito, fontSize = 15.sp,
                 modifier = Modifier.align(Alignment.CenterStart).clickable { onBack() })
-            Text("My ID", color = CmText, fontFamily = Nunito, fontSize = 17.sp,
+            Text("My CMC-ID", color = CmText, fontFamily = Nunito, fontSize = 17.sp,
                 fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
         }
 
@@ -54,7 +54,7 @@ fun MyIdScreen(cmId: String?, onBack: () -> Unit) {
         if (qr != null) {
             Image(
                 bitmap = qr.asImageBitmap(),
-                contentDescription = "CM-ID QR",
+                contentDescription = "CMC-ID QR",
                 modifier = Modifier.align(Alignment.CenterHorizontally)
                     .size(240.dp).clip(RoundedCornerShape(16.dp)).background(androidx.compose.ui.graphics.Color.White)
                     .padding(12.dp),

@@ -26,7 +26,7 @@ class CmIdAndFrameTest {
         val c = crypto()
         val (pub, _) = c.newIdentityKeypair()
         val id = CmId.encode(sampleOnion, pub)
-        assertTrue(id.startsWith("cm1:"))
+        assertTrue(id.startsWith("cmc1:"))
         val decoded = CmId.decode(id)!!
         assertEquals(sampleOnion, decoded.onion)
         assertEquals(pub.lowercase(), decoded.identityPubKeyHex.lowercase())
@@ -34,10 +34,10 @@ class CmIdAndFrameTest {
 
     @Test
     fun cmid_malformed_rejected() {
-        assertNull(CmId.decode("not-a-cm-id"))
-        assertNull(CmId.decode("cm1:"))
-        assertNull(CmId.decode("cm1:!!!!"))        // invalid base32
-        assertNull(CmId.decode("cm1:AAAAAAAA"))    // decodes but too short for onion+key
+        assertNull(CmId.decode("not-a-cmc-id"))
+        assertNull(CmId.decode("cmc1:"))
+        assertNull(CmId.decode("cmc1:!!!!"))        // invalid base32
+        assertNull(CmId.decode("cmc1:AAAAAAAA"))    // decodes but too short for onion+key
     }
 
     @Test
@@ -59,15 +59,15 @@ class CmIdAndFrameTest {
     fun knock_sealed_box_round_trip() {
         val c = crypto()
         val (bPub, bSec) = c.newIdentityKeypair()
-        // Sender knows only B's public key (from B's CM-ID).
-        val knock = KnockPayload(displayName = "Wanderer", cmId = "cm1:EXAMPLE")
+        // Sender knows only B's public key (from B's CMC-ID).
+        val knock = KnockPayload(displayName = "Wanderer", cmId = "cmc1:EXAMPLE")
         val plain = Messages.json.encodeToString(KnockPayload.serializer(), knock).toByteArray()
         val sealed = c.sealedSeal(plain, recipientPubKeyHex = bPub)
 
         val opened = c.sealedOpen(sealed, myPubKeyHex = bPub, mySecretKeyHex = bSec)!!
         val decoded = Messages.json.decodeFromString(KnockPayload.serializer(), String(opened))
         assertEquals("Wanderer", decoded.displayName)
-        assertEquals("cm1:EXAMPLE", decoded.cmId)
+        assertEquals("cmc1:EXAMPLE", decoded.cmId)
 
         // A different keypair cannot open it.
         val (xPub, xSec) = c.newIdentityKeypair()
