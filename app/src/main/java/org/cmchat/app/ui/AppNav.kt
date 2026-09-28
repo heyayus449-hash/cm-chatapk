@@ -34,6 +34,7 @@ private sealed class Nav {
     object MyServer : Nav()
     object MyId : Nav()
     object Knock : Nav()
+    data class Tool(val which: String) : Nav()
 }
 
 private fun myCmId(data: VaultData?): String? {
@@ -149,9 +150,11 @@ fun AppNav() {
                 onOpenChat = { nav = Nav.Chat(it.name, it.cmId) },
                 onOpenSettings = { nav = Nav.Settings },
                 onKnock = { nav = Nav.Knock },
+                onOpenTool = { nav = Nav.Tool(it) },
             )
         }
         is Nav.Chat -> ChatScreen(n.name, n.cmId) { nav = Nav.Circle }
+        is Nav.Tool -> org.cmchat.app.ui.screens.ToolsScreen(n.which) { nav = Nav.Circle }
         Nav.Settings -> SettingsScreen(
             onBack = { nav = Nav.Circle },
             onOpenMyServer = { nav = Nav.MyServer },

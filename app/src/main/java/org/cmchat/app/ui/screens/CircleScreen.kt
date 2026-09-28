@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.cmchat.app.tools.ToolsState
 import org.cmchat.app.tor.TorService
 import org.cmchat.app.tor.TorStatus
 import org.cmchat.app.transport.MessageService
@@ -41,9 +42,13 @@ fun CircleScreen(
     onOpenChat: (Contact) -> Unit,
     onOpenSettings: () -> Unit,
     onKnock: () -> Unit = {},
+    onOpenTool: (String) -> Unit = {},
 ) {
     val torStatus by TorService.status.collectAsState()
     val knocks by MessageService.incomingKnocks.collectAsState()
+    val calcOn by ToolsState.calcEnabled.collectAsState()
+    val notesOn by ToolsState.notesEnabled.collectAsState()
+    val convOn by ToolsState.converterEnabled.collectAsState()
     Column(Modifier.fillMaxSize().background(CmBackground)) {
         Row(
             Modifier.fillMaxWidth().padding(20.dp),
@@ -114,12 +119,29 @@ fun CircleScreen(
             }
         }
 
+        if (calcOn || notesOn || convOn) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (calcOn) DockTool("Calculator", "calculator", Modifier.weight(1f), onOpenTool)
+                if (notesOn) DockTool("Notes", "notes", Modifier.weight(1f), onOpenTool)
+                if (convOn) DockTool("Converter", "converter", Modifier.weight(1f), onOpenTool)
+            }
+        }
+
         Box(
             Modifier.fillMaxWidth().clickable { onOpenSettings() }.padding(18.dp),
             contentAlignment = Alignment.Center,
         ) {
             Text("Settings", color = CmText, fontFamily = Nunito, fontSize = 15.sp)
         }
+    }
+}
+
+@Composable
+private fun DockTool(label: String, key: String, modifier: Modifier, onOpen: (String) -> Unit) {
+    Box(modifier.clip(RoundedCornerShape(12.dp)).background(CmCard).clickable { onOpen(key) }
+        .padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
+        Text(label, color = CmText, fontFamily = Nunito, fontSize = 13.sp)
     }
 }
 

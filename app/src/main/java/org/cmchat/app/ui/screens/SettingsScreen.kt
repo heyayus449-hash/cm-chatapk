@@ -55,6 +55,9 @@ fun SettingsScreen(
             Setting("Cerberus · idle auto-wipe", "90 min")
             Setting("Kill Timer", "not armed")
             Setting("Self-Timer (per message)", "30s")
+            ToolToggle("Tool: Calculator", org.cmchat.app.tools.ToolsState.calcEnabled)
+            ToolToggle("Tool: Notes", org.cmchat.app.tools.ToolsState.notesEnabled)
+            ToolToggle("Tool: Converter", org.cmchat.app.tools.ToolsState.converterEnabled)
             Setting("My ID / QR", onClick = onOpenMyId)
             Setting("Panic PIN")
             Setting("Verify App Integrity")
@@ -68,6 +71,17 @@ fun SettingsScreen(
             Text("Wipe Everything Now", color = CmRed, fontFamily = Nunito,
                 fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
+    }
+}
+
+@Composable
+private fun ToolToggle(label: String, flow: kotlinx.coroutines.flow.MutableStateFlow<Boolean>) {
+    val on by flow.collectAsState()
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmCard)
+        .clickable { flow.value = !on }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = CmText, fontFamily = Nunito, fontSize = 14.sp, modifier = Modifier.weight(1f))
+        Text(if (on) "On" else "Off", color = if (on) CmGreen else CmTextDim,
+            fontFamily = Nunito, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

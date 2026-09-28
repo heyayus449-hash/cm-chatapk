@@ -79,6 +79,7 @@ object GuardController {
     /** Silent RAM wipe: drop chats, stop server + Tor, kill the process. */
     fun wipeAndDie() {
         ChatStore.clearAll()
+        org.cmchat.app.tools.ToolsState.clear()
         ServerController.stop()
         appContext?.let { TorService.stop(it) }
         // Give the stop calls a moment, then end the process.
