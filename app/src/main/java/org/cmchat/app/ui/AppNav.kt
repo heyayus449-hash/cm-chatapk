@@ -9,6 +9,7 @@ import org.cmchat.app.ui.screens.Contact
 import org.cmchat.app.ui.screens.LockScreen
 import org.cmchat.app.ui.screens.SettingsScreen
 import org.cmchat.app.ui.screens.sampleCircle
+import org.cmchat.app.tor.TorService
 import org.cmchat.app.vault.SecurityFactory
 import org.cmchat.app.vault.VaultData
 
@@ -30,6 +31,7 @@ fun AppNav() {
     when (val n = nav) {
         Nav.Lock -> LockScreen(manager) { unlocked ->
             data = unlocked
+            TorService.start(context)
             nav = Nav.Circle
         }
         Nav.Circle -> {

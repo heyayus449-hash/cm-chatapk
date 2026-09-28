@@ -37,6 +37,17 @@ android {
     }
 }
 
+// A transitive dependency (tor-android) pulls kotlin-stdlib 2.3.0, whose
+// metadata our Kotlin 2.1.0 compiler can't read. Pin stdlib to 2.1.0; its
+// public API is a subset so tor-android still links and runs.
+configurations.configureEach {
+    resolutionStrategy {
+        force("org.jetbrains.kotlin:kotlin-stdlib:2.1.0")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:2.1.0")
+        force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:2.1.0")
+    }
+}
+
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2024.12.01"))
     implementation("androidx.core:core-ktx:1.15.0")
@@ -52,6 +63,12 @@ dependencies {
 
     // Vault serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+
+    // Tor: Guardian Project tor-android (bundles the tor binary) + jtorctl
+    // control-port library. All networking goes through Tor.
+    implementation("info.guardianproject:tor-android:0.4.9.5")
+    implementation("info.guardianproject:jtorctl:0.4.5.7")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
     // Unit tests run on the host JVM; lazysodium-java bundles a desktop
     // libsodium so the same CryptoManager/Vault code is testable in CI.

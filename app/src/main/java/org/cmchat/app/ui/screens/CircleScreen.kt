@@ -9,6 +9,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -16,6 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import org.cmchat.app.tor.TorService
+import org.cmchat.app.tor.TorStatus
 import org.cmchat.app.ui.components.CmChatLogo
 import org.cmchat.app.ui.theme.*
 
@@ -36,12 +40,15 @@ fun CircleScreen(
     onOpenChat: (Contact) -> Unit,
     onOpenSettings: () -> Unit,
 ) {
+    val torStatus by TorService.status.collectAsState()
     Column(Modifier.fillMaxSize().background(CmBackground)) {
         Row(
             Modifier.fillMaxWidth().padding(20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CmChatLogo(size = 24)
+            Spacer(Modifier.width(12.dp))
+            TorIndicator(torStatus)
             Spacer(Modifier.weight(1f))
             Box(
                 Modifier.clip(RoundedCornerShape(20.dp)).background(CmOrange)
@@ -50,6 +57,13 @@ fun CircleScreen(
                 Text("+ Knock", color = Color.White, fontFamily = Nunito,
                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
             }
+        }
+        if (torStatus is TorStatus.Starting || torStatus is TorStatus.Connecting) {
+            Text(
+                "Connecting to Tor — the first launch can take 1–3 minutes.",
+                color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp,
+                modifier = Modifier.padding(horizontal = 20.dp).padding(bottom = 8.dp),
+            )
         }
 
         LazyColumn(
@@ -79,5 +93,20 @@ fun CircleScreen(
         ) {
             Text("Settings", color = CmText, fontFamily = Nunito, fontSize = 15.sp)
         }
+    }
+}
+
+@Composable
+private fun TorIndicator(status: TorStatus) {
+    val (color, label) = when (status) {
+        is TorStatus.Online -> CmGreen to "Online"
+        is TorStatus.Connecting -> CmOrange to "Connecting ${status.percent}%"
+        is TorStatus.Starting -> CmOrange to "Connecting"
+        is TorStatus.Offline -> CmTextDim to "Offline"
+    }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(9.dp).clip(CircleShape).background(color))
+        Spacer(Modifier.width(6.dp))
+        Text(label, color = color, fontFamily = Nunito, fontSize = 13.sp)
     }
 }

@@ -62,9 +62,32 @@ unlock stays usable on low-RAM phones. R8/minify stays OFF this phase so
 JNA/libsodium aren't stripped; turning it on with keep rules is a later
 hardening step.
 
+- Phase 3.1 Tor foreground service:
+  - Deps: info.guardianproject:tor-android:0.4.9.5 (0.4.9.6+ demand
+    compileSdk 36/37 which AGP 8.7.3 rejects, so pinned to 0.4.9.5 which
+    has no compileSdk floor) + jtorctl 0.4.5.7 + kotlinx-coroutines 1.9.0.
+    A transitive kotlin-stdlib 2.3.0 is force-pinned to 2.1.0 to match the
+    compiler.
+  - `tor/TorService.kt`: foreground service (min-importance "Active"
+    notification) that starts + binds the library TorService, listens for
+    its status broadcasts, and polls the control port
+    (status/bootstrap-phase) for %. Exposes `TorService.status:
+    StateFlow<TorStatus>` = Starting / Connecting(%) / Online / Offline.
+  - Manifest: INTERNET, FOREGROUND_SERVICE(+DATA_SYNC), POST_NOTIFICATIONS;
+    service declared with foregroundServiceType=dataSync.
+  - Circle header shows a status dot + label (grey Offline / orange
+    Connecting x% / green Online) and a "first launch can take 1-3 min"
+    note while connecting. Tor is started on unlock.
+  - NOTE: debug APK ~47 MB because tor-android bundles the tor binary for
+    all 4 ABIs; a release ABI split is a later step. Tor reaching ONLINE,
+    the notification, and bootstrap-% wiring can only be verified on a real
+    device (no emulator in CI); this commit is compile- + unit-test-green.
+
 ## Next
-- Phase 3: Tor onion transport (tor-android + jtorctl), one onion service
-  per Face, My ID/QR, Knock/Accept, My Server screen.
+- Phase 3.2 onion service per Face (v3 HS -> local ServerSocket), onion
+  key in the vault, separate from the messaging identity key.
+- 3.3 transport (SOCKS5 out, ServerSocket in, length-prefixed crypto_box
+  frames), 3.4 CM-ID + My ID/QR, 3.5 Knock/Accept, 3.6 My Server screen.
 - Later: chat over Tor, Cerberus/Kill timer, file transfer, hardening
   review (FLAG_SECURE, R8 log stripping, data-extraction rules).
 
