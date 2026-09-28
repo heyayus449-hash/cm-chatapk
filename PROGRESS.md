@@ -155,13 +155,42 @@ hardening step.
     (currently local; rides a later frame). Status is sent to contacts,
     never your own is shown.
 
+- R4 (guardians / hardening / tools / metadata), compile + test green:
+  - R4a guardians: GuardLogic (pure, tested) + GuardController — Cerberus
+    idle wipe (touch/onResume resets; reopening from recents counts),
+    Kill Timer, first-one-wins; on expiry silent RAM wipe (chats, tools),
+    stop server + Tor, kill process; vault stays. Chat eye = real armed.
+  - R4b Wipe Everything Now: confirm -> delete vault+salt+caches, clear
+    RAM, fire ACTION_DELETE (uninstall) intent. Reverse-PIN unchanged.
+  - R4c hardening: FLAG_SECURE, allowBackup=false + data-extraction/backup
+    rules excluding all, R8 minify + resource shrink for release with
+    keep/strip rules (Log stripped; JNA/lazysodium/tor/zxing/serialization
+    kept). Release APK builds under R8 (~39 MB).
+  - R4d tools dock (off by default, per-tool Settings toggle, all offline):
+    Calculator (arithmetic), Notes (RAM-only, wiped on close/wipe),
+    Converter (length/volume/mass). Calculator + Converter unit tested.
+  - R4e metadata scrub: MetadataScrubber.stripJpeg removes APP1 (Exif/GPS/
+    XMP) keeping APP0/JFIF + image data (pure, unit tested); AppSettings
+    metadataScrub (default ON) + shareLastSeen (default ON) toggles. Added
+    FILE_OFFER/CHUNK/DONE frame types.
+  - Tests 19/19.
+  - Deferred/device-only: real 100 MB file transfer over Tor (frame types
+    reserved, UI not built — RAM/app-cache-chunk choice to be made on
+    device); Team Hour cross-device sync; last-seen/status/metadata-scrub
+    wiring into the live send path; FLAG_SECURE blanking, uninstall intent,
+    minified-release runtime, and process kill are all device-only.
+  - R5 (Bouncy Castle swap) intentionally NOT done — would risk the green
+    crypto; revisit only with device testing.
+
+## Signing (still needs the repo owner)
+See "Signing TODO" above — release APKs remain unsigned until the four
+keystore secrets are added in GitHub. Test with the debug APK meanwhile.
+
 ## Next
-- R4 guardians/files/tools/hardening: Cerberus real idle wipe, Kill Timer,
-  Wipe Now (+ uninstall intent), files w/ progress + metadata scrub, tools
-  dock (calculator/notes/converter), FLAG_SECURE + R8 log-strip + data
-  extraction rules. R5 (optional) Bouncy Castle swap.
-- On-device: Tor ONLINE, onion publish, My Server self-test, a real
-  knock + chat A<->B (not verifiable in CI — no emulator).
+- On device (two phones): PIN + Face, wait for Tor "Online", My ID/QR,
+  Knock/Accept, chat both ways, offline retry, erase, self-timer, status,
+  reverse-PIN wipe, My Server self-test. Then decide the file-transfer
+  RAM-vs-cache approach and finish R4 files + live presence/scrub wiring.
 - Later: chat over Tor, Cerberus/Kill timer, file transfer, hardening
   review (FLAG_SECURE, R8 log stripping, data-extraction rules).
 

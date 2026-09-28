@@ -11,7 +11,10 @@ enum class FrameType(val code: Int) {
     STATUS(5),
     ERASE_CHAT(6),
     PING(7),
-    PONG(8);
+    PONG(8),
+    FILE_OFFER(9),
+    FILE_CHUNK(10),
+    FILE_DONE(11);
 
     companion object {
         fun fromCode(code: Int): FrameType? = entries.firstOrNull { it.code == code }
