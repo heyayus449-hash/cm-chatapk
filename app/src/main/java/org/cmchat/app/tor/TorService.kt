@@ -55,6 +55,16 @@ class TorService : Service() {
         private const val CHANNEL_ID = "cm_net"
         private const val NOTIF_ID = 7001
 
+        @Volatile
+        private var instance: TorService? = null
+
+        /** The jtorctl control connection while Tor is running, else null. */
+        fun controlConnection(): TorControlConnection? =
+            instance?.gpService?.torControlConnection
+
+        /** Tor's local SOCKS port (for outgoing connections through Tor). */
+        fun socksPort(): Int = instance?.gpService?.socksPort ?: 9050
+
         fun start(context: Context) {
             ContextCompat.startForegroundService(
                 context, Intent(context, TorService::class.java)
@@ -95,6 +105,7 @@ class TorService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         startForeground(NOTIF_ID, buildNotification())
         _status.value = TorStatus.Starting
         LocalBroadcastManager.getInstance(this).registerReceiver(
@@ -118,6 +129,7 @@ class TorService : Service() {
         }
         runCatching { stopService(Intent(this, GpTorService::class.java)) }
         _status.value = TorStatus.Offline
+        instance = null
         scope.cancel()
         super.onDestroy()
     }

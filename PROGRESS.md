@@ -97,13 +97,29 @@ hardening step.
   - Tests now 8/8: + CM-ID round-trip, malformed CM-ID rejected, frame
     seal/open round-trip, tampered frame rejected.
 
+- R1 complete (onion service + My Server), compile + test green:
+  - Face gained onionKey/onionAddress (v3 endpoint key), stored in the
+    vault SEPARATE from the messaging identity key (Home Node friendly).
+  - `tor/ServerController.kt`: publishes a v3 onion (ADD_ONION via jtorctl,
+    virtual port 80 -> random loopback ServerSocket) for the active Face;
+    reuses the stored key or asks Tor to generate one (NEW:ED25519-V3) and
+    returns it to persist. ServerStatus StateFlow Off/Starting/Online/
+    Failed; stop (DEL_ONION + close), restart, and self-test (connect to
+    own onion through Tor, OK/FAIL + ms).
+  - TorService exposes controlConnection() + socksPort().
+  - `ui/screens/MyServerScreen.kt`: status steps, onion address, Face,
+    live uptime, Start/Stop/Restart + Self-test. Reached from Settings.
+  - AppNav now keeps the PIN for the session (needed to save the vault),
+    starts the server when Tor is ONLINE, and persists a freshly-generated
+    onion key back into the vault.
+  - Onion accept loop currently accepts + closes (frame handling is R2).
+
 ## Next
-- Phase 3.2 onion service per Face (v3 HS via jtorctl addOnion -> local
-  ServerSocket), onion key stored in the vault, separate from the
-  messaging identity key.
-- 3.4 My ID screen (CM-ID text + QR, Copy/Share), 3.5 Knock/Accept
-  (paste/scan + camera), 3.6 My Server screen. These need the onion
-  address from 3.2 and on-device Tor.
+- R2: transport wired to the accept loop + outgoing SOCKS5; My ID screen
+  (CM-ID text + QR via ZXing, Copy/Share); Knock/Accept (paste/scan +
+  camera). Then R3 chat, R4 guardians/files/tools/hardening.
+- On-device: verify Tor reaches ONLINE, the onion publishes, and the
+  My Server self-test succeeds (not verifiable in CI — no emulator).
 - Later: chat over Tor, Cerberus/Kill timer, file transfer, hardening
   review (FLAG_SECURE, R8 log stripping, data-extraction rules).
 

@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.sp
 import org.cmchat.app.ui.theme.*
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen(onBack: () -> Unit, onOpenMyServer: () -> Unit = {}) {
     var textSize by remember { mutableStateOf(0f) }
     Column(Modifier.fillMaxSize().background(CmBackground)) {
         Box(Modifier.fillMaxWidth().padding(16.dp)) {
@@ -44,6 +44,7 @@ fun SettingsScreen(onBack: () -> Unit) {
                 }
             }
 
+            Setting("My Server", onClick = onOpenMyServer)
             Setting("Faces (Identities)")
             Setting("Circle")
             Setting("Cerberus · idle auto-wipe", "90 min")
@@ -65,9 +66,9 @@ fun SettingsScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun Setting(label: String, value: String = "") {
+private fun Setting(label: String, value: String = "", onClick: () -> Unit = {}) {
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmCard)
-        .clickable { }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        .clickable { onClick() }.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, color = CmText, fontFamily = Nunito, fontSize = 14.sp,
             modifier = Modifier.weight(1f))
         if (value.isNotEmpty())
