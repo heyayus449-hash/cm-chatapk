@@ -70,6 +70,10 @@ dependencies {
     implementation("info.guardianproject:jtorctl:0.4.5.7")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 
+    // QR generate + scan for exchanging CM-IDs.
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
     // Unit tests run on the host JVM; lazysodium-java bundles a desktop
     // libsodium so the same CryptoManager/Vault code is testable in CI.
     testImplementation("junit:junit:4.13.2")

@@ -104,6 +104,29 @@ class CryptoManager(private val ls: LazySodium) {
         return if (ok) plain else null
     }
 
+    /**
+     * Anonymous sealed box (crypto_box_seal) to a recipient public key. Used
+     * for KNOCK: the sender isn't in the recipient's Circle yet, so there's no
+     * shared knowledge of the sender's key — the sender stays anonymous until
+     * the recipient opens the knock and learns their CM-ID from inside.
+     */
+    fun sealedSeal(plain: ByteArray, recipientPubKeyHex: String): ByteArray {
+        val cipher = ByteArray(plain.size + Box.SEALBYTES)
+        val ok = boxNative.cryptoBoxSeal(cipher, plain, plain.size.toLong(), hexToBytes(recipientPubKeyHex))
+        check(ok) { "sealed seal failed" }
+        return cipher
+    }
+
+    fun sealedOpen(cipher: ByteArray, myPubKeyHex: String, mySecretKeyHex: String): ByteArray? {
+        if (cipher.size < Box.SEALBYTES) return null
+        val plain = ByteArray(cipher.size - Box.SEALBYTES)
+        val ok = boxNative.cryptoBoxSealOpen(
+            plain, cipher, cipher.size.toLong(),
+            hexToBytes(myPubKeyHex), hexToBytes(mySecretKeyHex),
+        )
+        return if (ok) plain else null
+    }
+
     private fun toHex(b: ByteArray): String =
         b.joinToString("") { "%02x".format(it) }
 

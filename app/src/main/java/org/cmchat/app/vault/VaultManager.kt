@@ -17,7 +17,7 @@ sealed interface UnlockResult {
  * their real PIN backwards, so we wipe and report Duress. Palindrome PINs are
  * rejected at creation precisely so reverse != forward.
  */
-class VaultManager(private val crypto: CryptoManager, dir: File) {
+class VaultManager(val crypto: CryptoManager, dir: File) {
 
     private val vault = Vault(crypto, dir)
 

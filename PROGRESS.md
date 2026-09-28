@@ -114,12 +114,34 @@ hardening step.
     onion key back into the vault.
   - Onion accept loop currently accepts + closes (frame handling is R2).
 
+- R2 (transport + My ID + Knock), compile + test green:
+  - ZXing added (core 3.5.3 + journeyapps zxing-android-embedded 4.3.0).
+  - CryptoManager: crypto_box_seal / seal_open (anonymous sealed box) for
+    KNOCK, since the knocker isn't in the Circle yet so there's no shared
+    key; everything else stays crypto_box between known identities.
+  - transport/MessageService: onion accept loop -> read length-prefixed
+    frame -> sealedOpen (KNOCK) -> KnockPayload -> incomingKnocks flow;
+    sendKnock connects SOCKS5-through-Tor and writes a sealed KNOCK;
+    accept/decline. ServerController.onIncoming hands sockets to it.
+  - Messages.kt: KnockPayload / TextPayload / StatusPayload (JSON).
+  - ui/screens/MyIdScreen: CM-ID (from active Face onion + identity pubkey)
+    as selectable text + a ZXing QR bitmap + Copy + Share.
+  - ui/screens/KnockScreen: paste a CM-ID or scan a QR (zxing ScanContract
+    camera), pick a nickname, Send Knock. Circle shows incoming knocks
+    with Accept/Decline.
+  - Tests 9/9: + knock sealed-box round-trip (only the recipient's key
+    opens it).
+  - Device-only: camera scanning and real Tor delivery of the KNOCK are
+    not exercised in CI. KNOCK_ACCEPT delivery + persisting accepted
+    contacts land with R3 chat.
+
 ## Next
-- R2: transport wired to the accept loop + outgoing SOCKS5; My ID screen
-  (CM-ID text + QR via ZXing, Copy/Share); Knock/Accept (paste/scan +
-  camera). Then R3 chat, R4 guardians/files/tools/hardening.
-- On-device: verify Tor reaches ONLINE, the onion publishes, and the
-  My Server self-test succeeds (not verifiable in CI — no emulator).
+- R3 chat: 1:1 text over Tor (MSG/ACK), RAM-only; offline retry bubble;
+  Erase (ERASE_CHAT); self-timer; status; last seen (per chat); Team Hour.
+  Wire KNOCK_ACCEPT + save accepted contacts to the vault.
+- R4 guardians/files/tools/hardening. R5 (optional) Bouncy Castle swap.
+- On-device: Tor ONLINE, onion publish, My Server self-test, a real
+  knock A<->B (not verifiable in CI — no emulator).
 - Later: chat over Tor, Cerberus/Kill timer, file transfer, hardening
   review (FLAG_SECURE, R8 log stripping, data-extraction rules).
 

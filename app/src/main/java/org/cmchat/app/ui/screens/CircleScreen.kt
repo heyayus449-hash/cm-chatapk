@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.cmchat.app.tor.TorService
 import org.cmchat.app.tor.TorStatus
+import org.cmchat.app.transport.MessageService
 import org.cmchat.app.ui.components.CmChatLogo
 import org.cmchat.app.ui.theme.*
 
@@ -39,8 +40,10 @@ fun CircleScreen(
     contacts: List<Contact>,
     onOpenChat: (Contact) -> Unit,
     onOpenSettings: () -> Unit,
+    onKnock: () -> Unit = {},
 ) {
     val torStatus by TorService.status.collectAsState()
+    val knocks by MessageService.incomingKnocks.collectAsState()
     Column(Modifier.fillMaxSize().background(CmBackground)) {
         Row(
             Modifier.fillMaxWidth().padding(20.dp),
@@ -52,10 +55,34 @@ fun CircleScreen(
             Spacer(Modifier.weight(1f))
             Box(
                 Modifier.clip(RoundedCornerShape(20.dp)).background(CmOrange)
-                    .clickable { }.padding(horizontal = 16.dp, vertical = 9.dp)
+                    .clickable { onKnock() }.padding(horizontal = 16.dp, vertical = 9.dp)
             ) {
                 Text("+ Knock", color = Color.White, fontFamily = Nunito,
                     fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+
+        for (k in knocks) {
+            Column(
+                Modifier.fillMaxWidth().padding(horizontal = 16.dp).padding(bottom = 8.dp)
+                    .clip(RoundedCornerShape(16.dp)).background(CmCard).padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text("Knock from ${k.displayName}", color = CmText, fontFamily = Nunito,
+                    fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(CmGreen)
+                        .clickable { MessageService.acceptKnock(k) }.padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center) {
+                        Text("Accept", color = CmBackground, fontFamily = Nunito, fontSize = 14.sp,
+                            fontWeight = FontWeight.SemiBold)
+                    }
+                    Box(Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).background(CmBackground)
+                        .clickable { MessageService.declineKnock(k) }.padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center) {
+                        Text("Decline", color = CmTextDim, fontFamily = Nunito, fontSize = 14.sp)
+                    }
+                }
             }
         }
         if (torStatus is TorStatus.Starting || torStatus is TorStatus.Connecting) {

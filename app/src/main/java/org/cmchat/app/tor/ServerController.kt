@@ -40,6 +40,10 @@ object ServerController {
     private var serverSocket: ServerSocket? = null
     private var currentServiceId: String? = null
 
+    /** Set by MessageService: handles each accepted incoming connection. */
+    @Volatile
+    var onIncoming: ((java.net.Socket) -> Unit)? = null
+
     /**
      * @param existingOnionKey the Face's stored "ED25519-V3:..." key, or null
      * @param onPublished called with the onion + any freshly-generated key to persist
@@ -113,8 +117,9 @@ object ServerController {
         scope.launch {
             while (!server.isClosed) {
                 val socket = runCatching { server.accept() }.getOrNull() ?: break
-                // Transport/frame handling is wired in R2; for now close politely.
-                runCatching { socket.close() }
+                val handler = onIncoming
+                if (handler != null) runCatching { handler(socket) }
+                else runCatching { socket.close() }
             }
         }
     }

@@ -18,7 +18,11 @@ import androidx.compose.ui.unit.sp
 import org.cmchat.app.ui.theme.*
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onOpenMyServer: () -> Unit = {}) {
+fun SettingsScreen(
+    onBack: () -> Unit,
+    onOpenMyServer: () -> Unit = {},
+    onOpenMyId: () -> Unit = {},
+) {
     var textSize by remember { mutableStateOf(0f) }
     Column(Modifier.fillMaxSize().background(CmBackground)) {
         Box(Modifier.fillMaxWidth().padding(16.dp)) {
@@ -50,6 +54,7 @@ fun SettingsScreen(onBack: () -> Unit, onOpenMyServer: () -> Unit = {}) {
             Setting("Cerberus · idle auto-wipe", "90 min")
             Setting("Kill Timer", "not armed")
             Setting("Self-Timer (per message)", "30s")
+            Setting("My ID / QR", onClick = onOpenMyId)
             Setting("Panic PIN")
             Setting("Verify App Integrity")
             Setting("About / Version")
