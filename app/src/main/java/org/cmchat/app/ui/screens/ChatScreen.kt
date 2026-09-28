@@ -35,7 +35,7 @@ fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
     val threads by ChatStore.threads.collectAsState()
     val thread = threads[chatId] ?: org.cmchat.app.chat.ChatThread()
 
-    var cerberusOn by remember { mutableStateOf(true) }
+    val cerberusOn by org.cmchat.app.guard.GuardController.cerberusArmed.collectAsState()
     var input by remember { mutableStateOf("") }
     var selfTimer by remember { mutableStateOf(SelfTimer.OFF) }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
@@ -76,7 +76,9 @@ fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp).clip(RoundedCornerShape(14.dp))
             .border(1.dp, CmTextFaint, RoundedCornerShape(14.dp)),
             verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.weight(1f).clickable { cerberusOn = !cerberusOn }
+            Row(Modifier.weight(1f).clickable {
+                    org.cmchat.app.guard.GuardController.setCerberusArmed(!cerberusOn)
+                }
                 .padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
                 CerberusMark(on = cerberusOn, sizeDp = 40)

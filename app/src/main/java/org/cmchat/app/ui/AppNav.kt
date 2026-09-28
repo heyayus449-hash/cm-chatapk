@@ -106,6 +106,7 @@ fun AppNav() {
             pin = enteredPin
             data = unlocked
             TorService.start(context)
+            org.cmchat.app.guard.GuardController.init(context)
             nav = Nav.Circle
         }
         Nav.Circle -> {
