@@ -80,8 +80,13 @@ object GuardController {
     fun wipeAndDie() {
         ChatStore.clearAll()
         org.cmchat.app.tools.ToolsState.clear()
+        org.cmchat.app.buzz.BuzzPolicy.clear()
         org.cmchat.app.diag.Diag.clear()
-        appContext?.let { org.cmchat.app.diag.CrashCatcher.delete(it) }
+        appContext?.let {
+            org.cmchat.app.diag.CrashCatcher.delete(it)
+            org.cmchat.app.notify.Notifier.clearAll(it)
+            org.cmchat.app.tor.BuzzListenerService.stop(it)
+        }
         ServerController.stop()
         appContext?.let { TorService.stop(it) }
         // Give the stop calls a moment, then end the process.

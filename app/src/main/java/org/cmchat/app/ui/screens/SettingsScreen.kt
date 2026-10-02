@@ -62,6 +62,11 @@ fun SettingsScreen(
             Setting("My CMC-ID / QR", onClick = onOpenMyId)
             ToolToggle("Metadata scrub (strip EXIF/GPS)", org.cmchat.app.settings.AppSettings.metadataScrub)
             ToolToggle("Share my last-seen", org.cmchat.app.settings.AppSettings.shareLastSeen)
+            BuzzFrequencyRow()
+            ToolToggle("Let a Buzz reach me when closed",
+                org.cmchat.app.settings.AppSettings.buzzListenerWhenClosed)
+            ToolToggle("Show sender name on alerts",
+                org.cmchat.app.settings.AppSettings.showBuzzSenderName)
             Setting("Panic PIN")
             Setting("Diagnostics", onClick = onOpenDiagnostics)
             Setting("Verify App Integrity")
@@ -75,6 +80,24 @@ fun SettingsScreen(
             Text("Wipe Everything Now", color = CmRed, fontFamily = Nunito,
                 fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
+    }
+}
+
+@Composable
+private fun BuzzFrequencyRow() {
+    val freq by org.cmchat.app.buzz.BuzzPolicy.frequency.collectAsState()
+    // Tap cycles through how often a person's buzzes are accepted.
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmCard)
+        .clickable {
+            val all = org.cmchat.app.buzz.BuzzFrequency.entries
+            org.cmchat.app.buzz.BuzzPolicy.frequency.value =
+                all[(freq.ordinal + 1) % all.size]
+        }
+        .padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("Accept Buzz", color = CmText, fontFamily = Nunito, fontSize = 14.sp,
+            modifier = Modifier.weight(1f))
+        Text(freq.label, color = CmBlue, fontFamily = Nunito, fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold)
     }
 }
 

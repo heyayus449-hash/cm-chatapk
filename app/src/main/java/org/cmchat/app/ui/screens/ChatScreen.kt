@@ -9,17 +9,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.animation.core.Animatable
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 import org.cmchat.app.chat.ChatMessage
 import org.cmchat.app.chat.ChatStore
 import org.cmchat.app.chat.LastSeen
@@ -40,12 +44,40 @@ fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
     var selfTimer by remember { mutableStateOf(SelfTimer.OFF) }
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     val retryReadyAt = remember { mutableStateMapOf<String, Long>() }
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         while (true) { now = System.currentTimeMillis(); ChatStore.purgeExpired(now); delay(1000) }
     }
 
-    Column(Modifier.fillMaxSize().background(CmBackground)) {
+    // Mark this chat as the one on screen (so a message here doesn't also notify).
+    DisposableEffect(chatCmId) {
+        MessageService.activeChatCmId = chatCmId
+        onDispose { if (MessageService.activeChatCmId == chatCmId) MessageService.activeChatCmId = null }
+    }
+
+    // Screen-shake when a BUZZ for this chat arrives (optional vibration too).
+    val shakeX = remember { Animatable(0f) }
+    LaunchedEffect(chatCmId) {
+        org.cmchat.app.buzz.BuzzPolicy.shakes.collect { s ->
+            if (s.chatCmId == chatCmId) {
+                runCatching {
+                    val vib = context.getSystemService(android.content.Context.VIBRATOR_SERVICE) as? android.os.Vibrator
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O)
+                        vib?.vibrate(android.os.VibrationEffect.createOneShot(120, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+                    else @Suppress("DEPRECATION") vib?.vibrate(120)
+                }
+                repeat(4) {
+                    shakeX.animateTo(16f, androidx.compose.animation.core.tween(50))
+                    shakeX.animateTo(-16f, androidx.compose.animation.core.tween(50))
+                }
+                shakeX.animateTo(0f, androidx.compose.animation.core.tween(50))
+            }
+        }
+    }
+
+    Column(Modifier.fillMaxSize().background(CmBackground)
+        .offset { IntOffset(shakeX.value.roundToInt(), 0) }) {
         Box(Modifier.fillMaxWidth().padding(14.dp)) {
             Text("‹ Circle", color = CmBlue, fontFamily = Nunito, fontSize = 15.sp,
                 modifier = Modifier.align(Alignment.CenterStart).clickable { onBack() })
@@ -121,7 +153,7 @@ fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
             }
         }
 
-        // Self-timer chip.
+        // Self-timer chip + Buzz.
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Self-timer:", color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp)
             Spacer(Modifier.width(8.dp))
@@ -133,6 +165,18 @@ fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
                     Text(t.label, color = if (sel) CmBackground else CmTextDim,
                         fontFamily = Nunito, fontSize = 12.sp)
                 }
+            }
+            Spacer(Modifier.weight(1f))
+            val buzzLeft = chatCmId?.let { org.cmchat.app.buzz.BuzzPolicy.sendCooldownRemaining(it, now) } ?: 0L
+            Box(Modifier.clip(RoundedCornerShape(10.dp))
+                .background(if (buzzLeft > 0) CmCard else CmOrange)
+                .clickable(enabled = buzzLeft <= 0 && chatCmId != null) {
+                    if (chatCmId != null) MessageService.sendBuzz(chatCmId)
+                }
+                .padding(horizontal = 12.dp, vertical = 5.dp)) {
+                Text(if (buzzLeft > 0) "Buzz ${buzzLeft}s" else "⚡ Buzz",
+                    color = if (buzzLeft > 0) CmTextDim else CmBackground,
+                    fontFamily = Nunito, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 

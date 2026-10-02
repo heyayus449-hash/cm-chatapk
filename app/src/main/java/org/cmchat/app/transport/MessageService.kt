@@ -44,8 +44,22 @@ object MessageService {
     private var myName: String = ""
     private var myCmId: String? = null
 
+    /**
+     * Buzz-only mode: the app was swiped away but the scout listener is alive.
+     * Only BUZZ frames produce an "Activity" notification; everything else is
+     * dropped, and no chat state is kept (ChatStore is already cleared).
+     */
+    @Volatile
+    var buzzOnlyMode: Boolean = false
+
     /** cmId -> decoded peer (onion + identity pubkey). */
     private val contacts = mutableMapOf<String, CmIdData>()
+    /** cmId -> contact nickname (only used if the user opts into showing it). */
+    private val names = mutableMapOf<String, String>()
+
+    /** The chat currently open in the foreground, or null. Set by ChatScreen. */
+    @Volatile
+    var activeChatCmId: String? = null
 
     fun configure(
         crypto: CryptoManager,
@@ -54,6 +68,7 @@ object MessageService {
         myIdentitySecHex: String,
         myCmId: String?,
         knownContactCmIds: List<String>,
+        contactNames: Map<String, String> = emptyMap(),
     ) {
         this.crypto = crypto
         this.myName = myDisplayName
@@ -62,6 +77,7 @@ object MessageService {
         this.myCmId = myCmId
         contacts.clear()
         knownContactCmIds.forEach { id -> CmId.decode(id)?.let { contacts[id] = it } }
+        names.clear(); names.putAll(contactNames)
         ServerController.onIncoming = { socket -> handleIncoming(socket) }
     }
 
@@ -82,8 +98,27 @@ object MessageService {
         }
     }
 
+    /**
+     * Fire-and-forget BUZZ: no ack, no retry, no state, no content. Rate-limited
+     * to one per contact per [BuzzPolicy.SEND_COOLDOWN_MS]. Returns false if on
+     * cooldown or not configured.
+     */
+    fun sendBuzz(chatCmId: String): Boolean {
+        val c = crypto; val sec = mySec; val peer = contacts[chatCmId]
+        if (c == null || sec == null || peer == null) return false
+        if (!org.cmchat.app.buzz.BuzzPolicy.canSend(chatCmId)) return false
+        org.cmchat.app.buzz.BuzzPolicy.markSent(chatCmId)
+        scope.launch {
+            runCatching { sendBox(c, sec, peer, FrameType.BUZZ, ByteArray(0)) }
+                .onFailure { org.cmchat.app.diag.Diag.e("buzz", "send failed", it) }
+        }
+        return true
+    }
+
     /** Send a text message; updates [ChatStore] state to SENT or OFFLINE. */
     fun sendText(chatCmId: String, text: String, timer: SelfTimer) {
+        // Messaging a person re-opens their "Once only" buzzes.
+        org.cmchat.app.buzz.BuzzPolicy.onMessagedContact(chatCmId)
         val msg = ChatStore.addMine(chatCmId, text, timer)
         val c = crypto; val sec = mySec; val peer = contacts[chatCmId]
         if (c == null || sec == null || peer == null) {
@@ -169,7 +204,8 @@ object MessageService {
                 // 2) crypto_box from a known contact: try each contact's key.
                 for ((cmId, peer) in contacts) {
                     val inner = c.boxOpen(sealed, peer.identityPubKeyHex, sec) ?: continue
-                    dispatchFromContact(cmId, peer, inner)
+                    if (buzzOnlyMode) dispatchBuzzOnly(cmId, inner)
+                    else dispatchFromContact(cmId, peer, inner)
                     return@use
                 }
                 // Couldn't decrypt with any key -> drop (count only, no content).
@@ -198,6 +234,12 @@ object MessageService {
                 }.getOrNull() ?: return
                 ChatStore.addTheirs(chatCmId, t.id, t.text, SelfTimer.fromLabel(t.selfTimer))
                 sendAck(peer, t.id)
+                // Generic "Notification" unless that chat is already on screen.
+                if (activeChatCmId != chatCmId) {
+                    org.cmchat.app.settings.AppSettings.appContext?.let { ctx ->
+                        org.cmchat.app.notify.Notifier.message(ctx, names[chatCmId])
+                    }
+                }
             }
             FrameType.ACK -> ChatStore.setState(chatCmId, String(body), MsgState.DELIVERED)
             FrameType.STATUS -> {
@@ -208,7 +250,26 @@ object MessageService {
             }
             FrameType.ERASE_CHAT -> ChatStore.erase(chatCmId)
             FrameType.KNOCK_ACCEPT -> ChatStore.touchPeer(chatCmId)
+            FrameType.BUZZ -> onBuzz(chatCmId)
             else -> {}
+        }
+    }
+
+    /** When the scout listener is alive, only a BUZZ does anything. */
+    private fun dispatchBuzzOnly(chatCmId: String, inner: ByteArray) {
+        if (inner.isEmpty()) return
+        val type = FrameType.fromCode(inner[0].toInt() and 0xff) ?: return
+        if (type == FrameType.BUZZ) onBuzz(chatCmId)
+    }
+
+    /** A buzz arrived: throttle by the receiver setting, then shake + notify. */
+    private fun onBuzz(chatCmId: String) {
+        if (!org.cmchat.app.buzz.BuzzPolicy.accept(chatCmId)) return
+        // Shake the chat if it's on screen (the UI collects this per-chat).
+        org.cmchat.app.buzz.BuzzPolicy.requestShake(chatCmId)
+        // Generic "Activity" bar notification; nickname only if opted in.
+        org.cmchat.app.settings.AppSettings.appContext?.let { ctx ->
+            org.cmchat.app.notify.Notifier.activity(ctx, names[chatCmId])
         }
     }
 

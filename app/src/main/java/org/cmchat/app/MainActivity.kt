@@ -11,6 +11,8 @@ import org.cmchat.app.ui.theme.CmChatTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Application context for background notifications (buzz listener).
+        org.cmchat.app.settings.AppSettings.appContext = applicationContext
         org.cmchat.app.diag.CrashCatcher.install(this)
         // No screenshots, blank in recents, no screen recording.
         window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
@@ -26,5 +28,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         GuardController.touch()
+        // Returning to the foreground resumes normal messaging (ends buzz-only).
+        org.cmchat.app.LifecycleController.onAppForeground()
     }
 }

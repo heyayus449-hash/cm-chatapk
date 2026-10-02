@@ -122,6 +122,13 @@ class TorService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    // The app was swiped from recents. Hand off to the lifecycle policy, which
+    // either keeps a minimal buzz-listener alive or goes fully offline.
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        org.cmchat.app.LifecycleController.onAppClosed(applicationContext)
+        super.onTaskRemoved(rootIntent)
+    }
+
     override fun onDestroy() {
         bootstrapJob?.cancel()
         LocalBroadcastManager.getInstance(this).unregisterReceiver(statusReceiver)

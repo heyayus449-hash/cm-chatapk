@@ -212,6 +212,31 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## BUZZ + scout listener
+- New FrameType.BUZZ (12). Fire-and-forget: no ack, no retry, no read state,
+  no content — so it can't act as a presence detector. Send has a 5-min
+  per-contact cooldown (BuzzPolicy.SEND_COOLDOWN_MS).
+- Receiver "Accept Buzz" frequency (Settings, taps to cycle): 1h / 12h / 24h /
+  Once only. "Once only" = after one buzz from a person, no more accepted until
+  you send them a message (BuzzPolicy.onMessagedContact clears it).
+- Receive with the chat open: screen shake (Animatable offset) + vibration.
+- Notifications are generic like original CM-Chat: a BUZZ = "Activity", a new
+  MESSAGE = "Notification" (only when that chat isn't on screen). No sender
+  name / no content by default; a setting ("Show sender name on alerts") can
+  switch on the nickname. Cleared on every wipe path + on app close.
+- Buzz UI: ⚡ Buzz chip in the chat (shows cooldown), long-press a contact in
+  the Circle.
+- Scout listener (buzz-through-when-closed): BuzzListenerService, a minimal
+  foreground service that survives swipe-away with its own minimal "Listening"
+  notification. On swipe (TorService.onTaskRemoved -> LifecycleController):
+  if "Let a Buzz reach me when closed" is ON (default) and not Invisible, Tor +
+  onion stay up, RAM is cleared, MessageService enters buzzOnlyMode (only a
+  BUZZ -> "Activity"); else full close (stop server + Tor, clear RAM). Force-
+  stopping in Android Settings kills even the listener (fully dark). Returning
+  to foreground (onResume) ends buzz-only mode and stops the listener.
+- Device-only: the actual swipe-survival, Tor reachability, shake/vibration,
+  and notifications need a phone (CI verifies compile + crypto only).
+
 ## Rename CM-ID -> CMC-ID
 - ID prefix `cm1:` -> `cmc1:` (CmId.PREFIX); all user-facing labels now say
   "CMC-ID" (My CMC-ID screen + Settings row, Knock hint/error, QR desc).

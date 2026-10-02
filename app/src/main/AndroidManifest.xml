@@ -31,6 +31,12 @@
             android:name=".tor.TorService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <!-- Scout listener: stays alive after swipe-away so a Buzz can arrive. -->
+        <service
+            android:name=".tor.BuzzListenerService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
     </application>
 
 </manifest>

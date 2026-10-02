@@ -1,7 +1,9 @@
 package org.cmchat.app.ui.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -103,9 +105,14 @@ fun CircleScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(contacts) { c ->
+                @OptIn(ExperimentalFoundationApi::class)
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                        .background(CmCard).clickable { onOpenChat(c) }
+                        .background(CmCard).combinedClickable(
+                            onClick = { onOpenChat(c) },
+                            // Long-press to Buzz (fire-and-forget, cooldown-limited).
+                            onLongClick = { c.cmId?.let { MessageService.sendBuzz(it) } },
+                        )
                         .padding(14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
