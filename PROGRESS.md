@@ -212,6 +212,13 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Circle header + chat guardians
+- Circle header (item 8): removed the "Knock" word and its pill; now just a
+  suggestive tappable orange circular "+" where Knock was.
+- Chat guardians (item 9): the Cerberus / Kill Timer bar is DISPLAY ONLY now —
+  removed the tap-to-toggle. Both show live state (Cerberus armed + 90m; Kill
+  Timer counts down or "Timer off") and are changed only in Settings.
+
 ## Lock screen: alphanumeric option
 - "Aa" button in the bottom-left keypad cell (under 7, left of 0). Tapping it
   switches the number pad to a full keyboard (OutlinedTextField, password-

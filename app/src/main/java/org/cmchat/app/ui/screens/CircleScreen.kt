@@ -60,12 +60,14 @@ fun CircleScreen(
             Spacer(Modifier.width(12.dp))
             TorIndicator(torStatus)
             Spacer(Modifier.weight(1f))
+            // Suggestive tappable orange "+" (the "Knock" word/bubble is gone).
             Box(
-                Modifier.clip(RoundedCornerShape(20.dp)).background(CmOrange)
-                    .clickable { onKnock() }.padding(horizontal = 16.dp, vertical = 9.dp)
+                Modifier.size(38.dp).clip(CircleShape).background(CmOrange)
+                    .clickable { onKnock() },
+                contentAlignment = Alignment.Center,
             ) {
-                Text("+ Knock", color = Color.White, fontFamily = Nunito,
-                    fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                Text("+", color = Color.White, fontFamily = Nunito,
+                    fontSize = 24.sp, fontWeight = FontWeight.Bold)
             }
         }
 

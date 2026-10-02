@@ -104,14 +104,13 @@ fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
             }
         }
 
-        // Cerberus / Timer bar (Cerberus tappable test toggle).
+        // Cerberus / Kill Timer bar — DISPLAY ONLY. Both are changed in Settings,
+        // never from the chat.
+        val killDeadline by org.cmchat.app.guard.GuardController.killDeadline.collectAsState()
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp).clip(RoundedCornerShape(14.dp))
             .border(1.dp, CmTextFaint, RoundedCornerShape(14.dp)),
             verticalAlignment = Alignment.CenterVertically) {
-            Row(Modifier.weight(1f).clickable {
-                    org.cmchat.app.guard.GuardController.setCerberusArmed(!cerberusOn)
-                }
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+            Row(Modifier.weight(1f).padding(horizontal = 12.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.Start, verticalAlignment = Alignment.CenterVertically) {
                 CerberusMark(on = cerberusOn, sizeDp = 40)
                 Spacer(Modifier.width(10.dp))
@@ -121,8 +120,13 @@ fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
             }
             Box(Modifier.width(1.dp).height(40.dp).background(CmTextFaint))
             Box(Modifier.weight(1f).padding(11.dp), contentAlignment = Alignment.Center) {
-                Text("Timer Off", color = CmTextDim, fontFamily = Nunito, fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold)
+                val killLabel = killDeadline?.let {
+                    val secs = ((it - now) / 1000).coerceAtLeast(0)
+                    "Kill ${secs / 3600}h${(secs % 3600) / 60}m"
+                } ?: "Timer off"
+                Text(killLabel,
+                    color = if (killDeadline != null) CmRed else CmTextDim,
+                    fontFamily = Nunito, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
 
