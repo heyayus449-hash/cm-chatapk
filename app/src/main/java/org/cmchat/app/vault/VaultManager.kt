@@ -52,7 +52,18 @@ class VaultManager(val crypto: CryptoManager, dir: File) {
     fun wipe() = vault.wipe()
 
     companion object {
-        fun isValidNewPin(pin: String): Boolean =
-            pin.length == 6 && pin.all { it.isDigit() } && pin != pin.reversed()
+        /**
+         * Accepts either a 6-digit numeric PIN or an alphanumeric passcode of 6+
+         * chars that includes at least one letter. Argon2id (cryptoPwHash) hashes
+         * the raw bytes, so any length/charset derives a valid key. A palindrome
+         * is always rejected so the reversed-input duress check stays unambiguous.
+         */
+        fun isValidNewPin(pin: String): Boolean {
+            if (pin == pin.reversed()) return false
+            val numeric6 = pin.length == 6 && pin.all { it.isDigit() }
+            val alphanumeric = pin.length >= 6 &&
+                pin.all { it.isLetterOrDigit() } && pin.any { it.isLetter() }
+            return numeric6 || alphanumeric
+        }
     }
 }

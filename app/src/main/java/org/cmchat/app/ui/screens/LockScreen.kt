@@ -35,6 +35,7 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
     var firstPin by remember(epoch) { mutableStateOf("") }
     var faceName by remember(epoch) { mutableStateOf("") }
     var status by remember(epoch) { mutableStateOf("") }
+    var alpha by remember(epoch) { mutableStateOf(false) } // alphanumeric passcode mode
     var wrongCount by remember(epoch) { mutableStateOf(0) }
     var lockedFor by remember(epoch) { mutableStateOf(0) }
 
@@ -49,7 +50,7 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
         when (phase) {
             Phase.NEW_PIN -> {
                 if (!VaultManager.isValidNewPin(entered)) {
-                    status = "Pick a 6-digit PIN that isn't a palindrome"
+                    status = "6-digit PIN, or 6+ chars with a letter — not a palindrome"
                 } else {
                     firstPin = entered; status = ""; phase = Phase.CONFIRM_PIN
                 }
@@ -85,7 +86,7 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
         Spacer(Modifier.height(10.dp))
         Text(
             when (phase) {
-                Phase.NEW_PIN -> "Create a 6-digit PIN"
+                Phase.NEW_PIN -> "Create a 6-digit PIN  ·  Aa for letters"
                 Phase.CONFIRM_PIN -> "Confirm your PIN"
                 Phase.NAME_FACE -> "Name your first Face"
                 Phase.UNLOCK -> "Face: Wanderer"
@@ -125,6 +126,38 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
                 Text("Create", color = CmBackground, fontFamily = Nunito,
                     fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
+        } else if (alpha) {
+            // Alphanumeric passcode: variable length, explicit submit.
+            OutlinedTextField(
+                value = pin,
+                onValueChange = { pin = it.take(64) },
+                singleLine = true,
+                visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = CmCard, unfocusedContainerColor = CmCard,
+                    focusedTextColor = CmText, unfocusedTextColor = CmText,
+                    cursorColor = CmBlue,
+                ),
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                if (lockedFor > 0) "Try again in ${lockedFor}s" else status,
+                color = if (lockedFor > 0 || status.isNotEmpty()) CmRed else CmBackground,
+                fontFamily = Nunito, fontSize = 13.sp,
+            )
+            Spacer(Modifier.height(12.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("123", color = CmTextDim, fontFamily = Nunito, fontSize = 14.sp,
+                    modifier = Modifier.clickable { alpha = false; pin = "" })
+                Box(Modifier.clip(RoundedCornerShape(14.dp)).background(CmBlue)
+                    .then(if (lockedFor > 0 || pin.isEmpty()) Modifier
+                          else Modifier.clickable { val e = pin; pin = ""; submitPin(e) })
+                    .padding(horizontal = 24.dp, vertical = 11.dp)) {
+                    Text("Enter", color = CmBackground, fontFamily = Nunito,
+                        fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                }
+            }
         } else {
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 repeat(6) { i ->
@@ -140,12 +173,12 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
             )
             Spacer(Modifier.height(18.dp))
             Keypad(enabled = lockedFor <= 0) { k ->
-                if (k == "<") {
-                    if (pin.isNotEmpty()) pin = pin.dropLast(1)
-                } else if (pin.length < 6) {
-                    pin += k
+                when (k) {
+                    "Aa" -> { alpha = true; pin = "" }       // switch to full keyboard
+                    "<" -> if (pin.isNotEmpty()) pin = pin.dropLast(1)
+                    else -> if (pin.length < 6) pin += k
                 }
-                if (pin.length == 6) {
+                if (!alpha && pin.length == 6) {
                     val entered = pin; pin = ""
                     submitPin(entered)
                 }
@@ -160,7 +193,8 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
 
 @Composable
 private fun Keypad(enabled: Boolean, onKey: (String) -> Unit) {
-    val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "<")
+    // Bottom-left cell (under 7, left of 0) is the "Aa" alphanumeric toggle.
+    val keys = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "Aa", "0", "<")
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
         for (row in 0..3) {
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -168,16 +202,18 @@ private fun Keypad(enabled: Boolean, onKey: (String) -> Unit) {
                     val k = keys[row * 3 + col]
                     Box(
                         Modifier.size(74.dp).clip(RoundedCornerShape(16.dp))
-                            .background(if (k == "") CmBackground else CmCard)
+                            .background(if (k == "Aa") CmBackground else CmCard)
                             .then(
-                                if (k == "" || !enabled) Modifier
+                                if (k.isEmpty() || !enabled) Modifier
                                 else Modifier.clickable { onKey(k) }
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (k.isNotEmpty())
-                            Text(k, color = if (enabled) CmText else CmTextFaint,
-                                fontFamily = Nunito, fontSize = 22.sp,
+                            Text(k, color = if (k == "Aa") CmBlue
+                                    else if (enabled) CmText else CmTextFaint,
+                                fontFamily = Nunito,
+                                fontSize = if (k == "Aa") 18.sp else 22.sp,
                                 fontWeight = FontWeight.SemiBold)
                     }
                 }

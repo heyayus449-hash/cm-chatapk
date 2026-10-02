@@ -52,9 +52,13 @@ class VaultTest {
     @Test
     fun palindrome_pin_rejected_others_accepted() {
         assertFalse(VaultManager.isValidNewPin("123321")) // palindrome
-        assertFalse(VaultManager.isValidNewPin("12345"))  // too short
-        assertFalse(VaultManager.isValidNewPin("12a456")) // non-digit
-        assertTrue(VaultManager.isValidNewPin("135790"))
+        assertFalse(VaultManager.isValidNewPin("12345"))  // too short (numeric)
+        assertFalse(VaultManager.isValidNewPin("ababa"))  // too short (alnum)
+        assertFalse(VaultManager.isValidNewPin("pa ss1")) // space not alphanumeric
+        assertTrue(VaultManager.isValidNewPin("135790"))   // 6-digit PIN
+        assertTrue(VaultManager.isValidNewPin("12a456"))   // alphanumeric passcode
+        assertTrue(VaultManager.isValidNewPin("Secret1"))  // longer alphanumeric
+        assertFalse(VaultManager.isValidNewPin("aa1aa"))   // 5 chars, too short
     }
 
     @Test

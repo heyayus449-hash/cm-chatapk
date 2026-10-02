@@ -212,6 +212,20 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Lock screen: alphanumeric option
+- "Aa" button in the bottom-left keypad cell (under 7, left of 0). Tapping it
+  switches the number pad to a full keyboard (OutlinedTextField, password-
+  masked) with an explicit Enter button and a "123" link back to the numeric pad.
+- isValidNewPin now accepts a 6-digit numeric PIN OR a 6+ char alphanumeric
+  passcode with at least one letter; palindromes still rejected (keeps the
+  reversed-input duress check unambiguous). Argon2id hashes the raw bytes, so
+  any length/charset derives a valid key. Tests cover both. 21 tests pass.
+- NOTE for the owner: the batch said "default stays a 4-digit numeric PIN", but
+  the app has shipped a 6-digit default throughout (confirm UI + duress logic
+  assume 6). Dropping to 4 digits weakens the passcode in a privacy tool, so I
+  kept the 6-digit numeric default and ADDED the alphanumeric option rather than
+  silently weakening it. Say the word if you really want 4-digit.
+
 ## App lifecycle
 - Swiped from recents (TorService.onTaskRemoved -> LifecycleController): CLOSED
   — clear ALL RAM (messages/notes/statuses/buzz), go offline (or keep the buzz-
