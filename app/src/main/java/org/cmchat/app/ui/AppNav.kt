@@ -121,13 +121,18 @@ fun AppNav() {
         }
     }
 
-    // Once Tor is ONLINE, publish the active Face's onion service. If Tor
-    // generated a fresh onion key, persist it back into the vault.
-    LaunchedEffect(torStatus, data) {
+    // Once Tor is ONLINE, publish the active Face's onion service (unless
+    // Invisible mode is on). If Tor generated a fresh onion key, persist it.
+    // Invisible mode stops the server so every incoming probe sees us OFFLINE;
+    // outbound is unaffected. Turning it off re-publishes.
+    val invisible by org.cmchat.app.settings.AppSettings.invisibleMode.collectAsState()
+    LaunchedEffect(torStatus, data, invisible) {
         val d = data ?: return@LaunchedEffect
         val p = pin ?: return@LaunchedEffect
         val face = d.faces.firstOrNull() ?: return@LaunchedEffect
-        if (torStatus is TorStatus.Online) {
+        if (invisible) {
+            ServerController.stop()
+        } else if (torStatus is TorStatus.Online) {
             ServerController.start(face.name, face.onionKey, face.onionAddress) { pub ->
                 val keyChanged = pub.newPrivateKey != null && face.onionKey == null
                 val addrChanged = face.onionAddress != pub.onion

@@ -147,6 +147,12 @@ object ServerController {
         scope.launch {
             while (!server.isClosed) {
                 val socket = runCatching { server.accept() }.getOrNull() ?: break
+                // Invisible mode: refuse every incoming connection so any probe
+                // (message, retry, buzz) sees us as OFFLINE. Outbound is unaffected.
+                if (org.cmchat.app.settings.AppSettings.invisibleMode.value) {
+                    runCatching { socket.close() }
+                    continue
+                }
                 val handler = onIncoming
                 if (handler != null) runCatching { handler(socket) }
                 else runCatching { socket.close() }

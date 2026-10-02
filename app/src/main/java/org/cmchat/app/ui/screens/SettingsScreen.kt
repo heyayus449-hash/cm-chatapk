@@ -50,6 +50,8 @@ fun SettingsScreen(
                 }
             }
 
+            ToolToggle("Invisible mode (look offline)",
+                org.cmchat.app.settings.AppSettings.invisibleMode)
             Setting("My Server", onClick = onOpenMyServer)
             Setting("Faces (Identities)")
             Setting("Circle")

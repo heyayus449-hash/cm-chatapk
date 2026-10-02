@@ -212,6 +212,15 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Invisible mode
+- Settings toggle (AppSettings.invisibleMode, default OFF). When ON, the onion
+  server is stopped and the accept loop refuses every incoming connection, so
+  any probe (message, retry, buzz) sees us as OFFLINE. Outbound (SOCKS through
+  Tor) is unaffected — you can still start conversations. Turning it off
+  re-publishes the onion. Closes the "retry reveals a hidden-online user" leak.
+- Note: our transport is one-shot per connection, so a reply "within an open
+  session" isn't a separate path — invisible simply drops all inbound.
+
 ## BUZZ + scout listener
 - New FrameType.BUZZ (12). Fire-and-forget: no ack, no retry, no read state,
   no content — so it can't act as a presence detector. Send has a 5-min
