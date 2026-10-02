@@ -1,7 +1,7 @@
 package org.cmchat.app
 
+import org.cmchat.app.tools.CalcEngine
 import org.cmchat.app.tools.Calculator
-import org.cmchat.app.tools.Converter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -30,11 +30,46 @@ class ToolsTest {
     }
 
     @Test
-    fun converter_within_and_across_categories() {
-        close(1000.0, Converter.convert(1.0, "km", "m")!!)
-        close(1.609344, Converter.convert(1.0, "mi", "km")!!)
-        close(1000.0, Converter.convert(1.0, "L", "mL")!!)
-        assertNull(Converter.convert(1.0, "km", "L"))  // cross-category
-        assertNull(Converter.convert(1.0, "km", "xx"))  // unknown unit
+    fun calc_engine_immediate_execution() {
+        val e = CalcEngine()
+        // 12 + 3 = 15 (immediate execution, like the pocket calculator)
+        e.digit(1); e.digit(2); e.op('+'); e.digit(3); e.equals()
+        assertEquals("15", e.display)
     }
+
+    @Test
+    fun calc_engine_chain_and_sqrt_and_percent() {
+        val e = CalcEngine()
+        // 2 + 3 * 4 applies + first (pocket semantics): (2+3)=5, then *4 = 20
+        e.digit(2); e.op('+'); e.digit(3); e.op('*'); e.digit(4); e.equals()
+        assertEquals("20", e.display)
+
+        val s = CalcEngine()
+        s.digit(9); s.sqrt()
+        assertEquals("3", s.display)
+
+        val p = CalcEngine()
+        // 200 + 10% -> base 200, 10% of 200 = 20
+        p.digit(2); p.digit(0); p.digit(0); p.op('+'); p.digit(1); p.digit(0); p.percent()
+        assertEquals("20", p.display)
+    }
+
+    @Test
+    fun calc_engine_memory() {
+        val e = CalcEngine()
+        e.digit(5); e.memPlus()           // M = 5
+        assertTrue(e.hasMemory)
+        e.digit(2); e.memPlus()           // M = 7
+        e.memRecall()
+        assertEquals("7", e.display)
+    }
+
+    @Test
+    fun calc_engine_divide_by_zero_is_error() {
+        val e = CalcEngine()
+        e.digit(5); e.op('/'); digitZero(e); e.equals()
+        assertEquals("Error", e.display)
+    }
+
+    private fun digitZero(e: CalcEngine) = e.digit(0)
 }

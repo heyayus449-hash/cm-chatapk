@@ -212,6 +212,20 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Tools dock rework
+- Removed the Converter (dock = Calculator + Notes for now). Converter.kt and
+  its toggle/tests deleted.
+- Dock tools are now transparent CIRCLES with a symbol glyph + tiny caption
+  (the old black square was a bug — fixed), centred and evenly spaced by count.
+- Calculator: Google-calculator look (clean rounded Material-dark keys), CT-200N
+  key set + arrangement — MRC / M- / M+, √, %, C/CE, ÷ × − + =, . and 0–9 (no
+  "OFF"). New CalcEngine (pure, immediate-execution pocket-calc semantics +
+  memory), unit-tested. Dock glyph ▦.
+- Notes: still RAM-only scratchpad, plus an "+ Add check" button that adds a
+  to-do line with an empty checkbox; tapping the checkbox green-ticks it
+  (strike-through, item stays). Dock glyph ☑. Checklist cleared on wipe.
+- 25 unit tests pass (added CalcEngine coverage).
+
 ## Circle header + chat guardians
 - Circle header (item 8): removed the "Knock" word and its pill; now just a
   suggestive tappable orange circular "+" where Knock was.

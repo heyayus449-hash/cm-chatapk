@@ -3,22 +3,25 @@ package org.cmchat.app.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.cmchat.app.tools.Calculator
-import org.cmchat.app.tools.Converter
+import org.cmchat.app.tools.CalcEngine
 import org.cmchat.app.tools.ToolsState
 import org.cmchat.app.ui.theme.*
 
@@ -34,77 +37,46 @@ fun ToolsScreen(which: String, onBack: () -> Unit) {
         when (which) {
             "calculator" -> CalculatorUi()
             "notes" -> NotesUi()
-            "converter" -> ConverterUi()
         }
     }
 }
+
+// ---- Calculator: Google-calculator look, CT-200N key set ------------------
 
 @Composable
 private fun CalculatorUi() {
-    var expr by remember { mutableStateOf("") }
-    val result = remember(expr) { Calculator.eval(expr) }
-    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Field(expr, "e.g. (12 + 3) * 4") { expr = it }
-        Text(result?.let { trimNum(it) } ?: "—", color = CmBlue, fontFamily = Nunito,
-            fontSize = 28.sp, fontWeight = FontWeight.Bold)
-    }
-}
+    val engine = remember { CalcEngine() }
+    var display by remember { mutableStateOf(engine.display) }
+    var hasMem by remember { mutableStateOf(engine.hasMemory) }
+    fun sync() { display = engine.display; hasMem = engine.hasMemory }
 
-@Composable
-private fun NotesUi() {
-    val notes by ToolsState.notes.collectAsState()
-    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("RAM only — cleared when the app closes.", color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp)
-        Box(Modifier.fillMaxWidth().weight(1f, fill = false).heightIn(min = 200.dp)
-            .clip(RoundedCornerShape(12.dp)).background(CmCard).padding(12.dp)) {
-            BasicTextField(
-                value = notes, onValueChange = { ToolsState.notes.value = it },
-                textStyle = TextStyle(color = CmText, fontFamily = Nunito, fontSize = 15.sp),
-                cursorBrush = SolidColor(CmBlue), modifier = Modifier.fillMaxWidth(),
-            )
+    Column(Modifier.fillMaxSize().padding(16.dp)) {
+        // Display
+        Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(CmCard)
+            .padding(horizontal = 20.dp, vertical = 28.dp), contentAlignment = Alignment.CenterEnd) {
+            if (hasMem) Text("M", color = CmOrange, fontFamily = Nunito, fontSize = 14.sp,
+                modifier = Modifier.align(Alignment.CenterStart))
+            Text(display, color = CmText, fontFamily = Nunito, fontSize = 40.sp,
+                fontWeight = FontWeight.Bold, maxLines = 1)
         }
-    }
-}
+        Spacer(Modifier.height(16.dp))
 
-@Composable
-private fun ConverterUi() {
-    var value by remember { mutableStateOf("1") }
-    var from by remember { mutableStateOf("km") }
-    var to by remember { mutableStateOf("mi") }
-    val out = remember(value, from, to) {
-        value.toDoubleOrNull()?.let { Converter.convert(it, from, to) }
-    }
-    Column(Modifier.padding(16.dp).verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Field(value, "value") { value = it }
-        UnitRow("From", from) { from = it }
-        UnitRow("To", to) { to = it }
-        Text(out?.let { trimNum(it) } ?: "—", color = CmBlue, fontFamily = Nunito,
-            fontSize = 24.sp, fontWeight = FontWeight.Bold)
-    }
-}
-
-@Composable
-private fun UnitRow(label: String, selected: String, onSelect: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp)
-        FlowLikeRow(Converter.units.map { it.symbol }, selected, onSelect)
-    }
-}
-
-@Composable
-private fun FlowLikeRow(items: List<String>, selected: String, onSelect: (String) -> Unit) {
-    // simple wrapping via chunks of 6
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        items.chunked(6).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                row.forEach { s ->
-                    val sel = s == selected
-                    Box(Modifier.clip(RoundedCornerShape(10.dp))
-                        .background(if (sel) CmBlue else CmCard).clickable { onSelect(s) }
-                        .padding(horizontal = 10.dp, vertical = 6.dp)) {
-                        Text(s, color = if (sel) CmBackground else CmTextDim,
-                            fontFamily = Nunito, fontSize = 12.sp)
+        val rows = listOf(
+            listOf("MRC", "M-", "M+", "C/CE"),
+            listOf("√", "%", "÷", "×"),
+            listOf("7", "8", "9", "−"),
+            listOf("4", "5", "6", "+"),
+            listOf("1", "2", "3", "="),
+            listOf("0", ".", "", ""),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            for (row in rows) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    for (key in row) {
+                        if (key.isEmpty()) { Spacer(Modifier.weight(1f)); continue }
+                        CalcKey(key, Modifier.weight(1f)) {
+                            press(engine, key); sync()
+                        }
                     }
                 }
             }
@@ -112,17 +84,101 @@ private fun FlowLikeRow(items: List<String>, selected: String, onSelect: (String
     }
 }
 
-@Composable
-private fun Field(value: String, hint: String, onChange: (String) -> Unit) {
-    Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(CmCard).padding(14.dp)) {
-        if (value.isEmpty()) Text(hint, color = CmTextDim, fontFamily = Nunito, fontSize = 15.sp)
-        BasicTextField(
-            value = value, onValueChange = onChange, singleLine = true,
-            textStyle = TextStyle(color = CmText, fontFamily = Nunito, fontSize = 16.sp),
-            cursorBrush = SolidColor(CmBlue), modifier = Modifier.fillMaxWidth(),
-        )
+private fun press(e: CalcEngine, key: String) {
+    when (key) {
+        in "0".."9" -> e.digit(key.toInt())
+        "." -> e.dot()
+        "+" -> e.op('+'); "−" -> e.op('-'); "×" -> e.op('*'); "÷" -> e.op('/')
+        "=" -> e.equals()
+        "%" -> e.percent()
+        "√" -> e.sqrt()
+        "C/CE" -> e.clearCe()
+        "MRC" -> e.memRecall()
+        "M-" -> e.memMinus()
+        "M+" -> e.memPlus()
     }
 }
 
-private fun trimNum(d: Double): String =
-    if (d == d.toLong().toDouble()) d.toLong().toString() else "%.6f".format(d).trimEnd('0').trimEnd('.')
+@Composable
+private fun CalcKey(label: String, modifier: Modifier, onClick: () -> Unit) {
+    val isOp = label in setOf("+", "−", "×", "÷")
+    val isEquals = label == "="
+    val isFn = label in setOf("√", "%", "C/CE", "MRC", "M-", "M+")
+    val bg = when {
+        isEquals -> CmBlue
+        isOp -> CmOrange
+        isFn -> CmCard
+        else -> CmCard
+    }
+    val fg = when {
+        isEquals -> CmBackground
+        isOp -> Color.White
+        isFn -> CmBlue
+        else -> CmText
+    }
+    Box(modifier.height(58.dp).clip(RoundedCornerShape(16.dp)).background(bg).clickable { onClick() },
+        contentAlignment = Alignment.Center) {
+        Text(label, color = fg, fontFamily = Nunito,
+            fontSize = if (label.length > 2) 15.sp else 20.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+// ---- Notes: RAM-only scratchpad + checklist -------------------------------
+
+@Composable
+private fun NotesUi() {
+    val notes by ToolsState.notes.collectAsState()
+    val checks by ToolsState.checks.collectAsState()
+    Column(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("RAM only — cleared when the app closes.", color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp)
+
+        Box(Modifier.fillMaxWidth().heightIn(min = 120.dp)
+            .clip(RoundedCornerShape(12.dp)).background(CmCard).padding(12.dp)) {
+            if (notes.isEmpty()) Text("Scratchpad…", color = CmTextDim, fontFamily = Nunito, fontSize = 15.sp)
+            BasicTextField(
+                value = notes, onValueChange = { ToolsState.notes.value = it },
+                textStyle = TextStyle(color = CmText, fontFamily = Nunito, fontSize = 15.sp),
+                cursorBrush = SolidColor(CmBlue), modifier = Modifier.fillMaxWidth(),
+            )
+        }
+
+        Box(Modifier.clip(RoundedCornerShape(12.dp)).background(CmBlue)
+            .clickable { ToolsState.addCheck() }.padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Text("+ Add check", color = CmBackground, fontFamily = Nunito,
+                fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+        }
+
+        LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(checks, key = { it.id }) { item ->
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(CmCard)
+                    .padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(22.dp).clip(RoundedCornerShape(6.dp))
+                        .background(if (item.done) CmGreen else CmBackground)
+                        .clickable { ToolsState.toggleCheck(item.id) },
+                        contentAlignment = Alignment.Center) {
+                        if (item.done) Text("✓", color = CmBackground, fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    BasicTextField(
+                        value = item.text,
+                        onValueChange = { ToolsState.setCheckText(item.id, it) },
+                        singleLine = true,
+                        textStyle = TextStyle(
+                            color = if (item.done) CmTextDim else CmText,
+                            fontFamily = Nunito, fontSize = 15.sp,
+                            textDecoration = if (item.done) TextDecoration.LineThrough else null,
+                        ),
+                        cursorBrush = SolidColor(CmBlue),
+                        decorationBox = { inner ->
+                            if (item.text.isEmpty())
+                                Text("To-do…", color = CmTextDim, fontFamily = Nunito, fontSize = 15.sp)
+                            inner()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
+        }
+    }
+}

@@ -2,6 +2,7 @@ package org.cmchat.app.ui.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -50,7 +51,6 @@ fun CircleScreen(
     val knocks by MessageService.incomingKnocks.collectAsState()
     val calcOn by ToolsState.calcEnabled.collectAsState()
     val notesOn by ToolsState.notesEnabled.collectAsState()
-    val convOn by ToolsState.converterEnabled.collectAsState()
     Column(Modifier.fillMaxSize().background(CmBackground)) {
         Row(
             Modifier.fillMaxWidth().padding(20.dp),
@@ -128,12 +128,13 @@ fun CircleScreen(
             }
         }
 
-        if (calcOn || notesOn || convOn) {
-            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (calcOn) DockTool("Calculator", "calculator", Modifier.weight(1f), onOpenTool)
-                if (notesOn) DockTool("Notes", "notes", Modifier.weight(1f), onOpenTool)
-                if (convOn) DockTool("Converter", "converter", Modifier.weight(1f), onOpenTool)
+        // Active tools: transparent circles with a symbol glyph, centred and
+        // evenly spaced regardless of count.
+        if (calcOn || notesOn) {
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterHorizontally)) {
+                if (calcOn) DockTool("Calculator", "calculator", "▦", onOpenTool)
+                if (notesOn) DockTool("Notes", "notes", "☑", onOpenTool)
             }
         }
 
@@ -147,10 +148,20 @@ fun CircleScreen(
 }
 
 @Composable
-private fun DockTool(label: String, key: String, modifier: Modifier, onOpen: (String) -> Unit) {
-    Box(modifier.clip(RoundedCornerShape(12.dp)).background(CmCard).clickable { onOpen(key) }
-        .padding(vertical = 10.dp), contentAlignment = Alignment.Center) {
-        Text(label, color = CmText, fontFamily = Nunito, fontSize = 13.sp)
+private fun DockTool(label: String, key: String, glyph: String, onOpen: (String) -> Unit) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // Circle, fully transparent fill (the old black square was a bug), thin
+        // orange ring, symbol glyph inside.
+        Box(
+            Modifier.size(52.dp).clip(CircleShape)
+                .border(1.5.dp, CmOrange, CircleShape)
+                .clickable { onOpen(key) },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(glyph, color = CmOrange, fontFamily = Nunito, fontSize = 22.sp)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(label, color = CmTextDim, fontFamily = Nunito, fontSize = 11.sp)
     }
 }
 
