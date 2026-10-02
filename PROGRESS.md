@@ -212,6 +212,18 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## App lifecycle
+- Swiped from recents (TorService.onTaskRemoved -> LifecycleController): CLOSED
+  — clear ALL RAM (messages/notes/statuses/buzz), go offline (or keep the buzz-
+  listener per the toggle). Vault stays; next open needs the PIN. (Wired in the
+  BUZZ commit.)
+- Minimised (still in recents): no onTaskRemoved fires, so the app stays ONLINE
+  and keeps RAM; Cerberus keeps counting because minimising never calls touch()
+  (touch is only on Activity onResume). Returning to the foreground resets
+  Cerberus (onResume -> GuardController.touch) and ends buzz-only mode.
+- First run: one plain teaching sentence on the Face screen — "Open = present;
+  minimised = present but on Cerberus's timer; swiped away = closed and offline."
+
 ## Last-seen (simplified)
 - LastSeen.bucket now: within 24h -> "last seen recently"; after 24h -> nothing.
   Dropped the 60/180-min tiers ("a while ago"). Global "Share my last-seen"

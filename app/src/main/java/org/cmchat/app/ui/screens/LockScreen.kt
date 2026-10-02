@@ -96,6 +96,13 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
         Spacer(Modifier.height(28.dp))
 
         if (phase == Phase.NAME_FACE) {
+            Text(
+                "Open = present; minimised = present but on Cerberus's timer; " +
+                    "swiped away = closed and offline.",
+                color = CmTextFaint, fontFamily = Nunito, fontSize = 12.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.padding(bottom = 18.dp),
+            )
             OutlinedTextField(
                 value = faceName,
                 onValueChange = { faceName = it.take(24) },
