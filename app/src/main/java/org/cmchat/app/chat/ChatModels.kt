@@ -27,16 +27,17 @@ data class ChatMessage(
     val system: Boolean = false,
 )
 
-/** Per-chat presence buckets — deliberately coarse, never an exact time. */
+/**
+ * Per-chat presence — deliberately coarse, never an exact time. Within 24h it
+ * reads "last seen recently"; after 24h it shows nothing at all. The global
+ * "Share my last-seen" toggle hides your own either way.
+ */
 object LastSeen {
+    private const val DAY_MS = 24 * 60 * 60_000L
+
     fun bucket(lastSeenAtMs: Long?, nowMs: Long = System.currentTimeMillis()): String? {
         if (lastSeenAtMs == null || lastSeenAtMs > nowMs) return null
-        val mins = (nowMs - lastSeenAtMs) / 60_000L
-        return when {
-            mins <= 60 -> "last seen recently"
-            mins <= 180 -> "last seen a while ago"
-            else -> null
-        }
+        return if (nowMs - lastSeenAtMs <= DAY_MS) "last seen recently" else null
     }
 }
 

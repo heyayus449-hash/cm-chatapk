@@ -212,6 +212,11 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Last-seen (simplified)
+- LastSeen.bucket now: within 24h -> "last seen recently"; after 24h -> nothing.
+  Dropped the 60/180-min tiers ("a while ago"). Global "Share my last-seen"
+  on/off unchanged. Tests updated; 19/19.
+
 ## Invisible mode
 - Settings toggle (AppSettings.invisibleMode, default OFF). When ON, the onion
   server is stopped and the accept loop refuses every incoming connection, so

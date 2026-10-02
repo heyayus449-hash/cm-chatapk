@@ -17,11 +17,9 @@ class ChatLogicTest {
     fun last_seen_buckets() {
         assertNull(LastSeen.bucket(null, now))
         assertEquals("last seen recently", LastSeen.bucket(now - 10 * 60_000L, now))
-        assertEquals("last seen recently", LastSeen.bucket(now - 60 * 60_000L, now))
-        assertEquals("last seen a while ago", LastSeen.bucket(now - 120 * 60_000L, now))
-        assertEquals("last seen a while ago", LastSeen.bucket(now - 180 * 60_000L, now))
-        assertNull(LastSeen.bucket(now - 181 * 60_000L, now))   // >180m -> nothing
-        assertNull(LastSeen.bucket(now + 5_000L, now))          // future -> nothing
+        assertEquals("last seen recently", LastSeen.bucket(now - 23 * 60 * 60_000L, now))
+        assertNull(LastSeen.bucket(now - 25 * 60 * 60_000L, now))   // >24h -> nothing
+        assertNull(LastSeen.bucket(now + 5_000L, now))             // future -> nothing
     }
 
     @Test
