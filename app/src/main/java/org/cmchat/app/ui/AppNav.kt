@@ -23,8 +23,12 @@ import org.cmchat.app.ui.screens.MyIdScreen
 import org.cmchat.app.ui.screens.MyServerScreen
 import org.cmchat.app.ui.screens.SettingsScreen
 import org.cmchat.app.ui.screens.sampleCircle
+import org.cmchat.app.ui.theme.CmGreen
 import org.cmchat.app.vault.SecurityFactory
 import org.cmchat.app.vault.VaultData
+
+/** Sentinel id for the decoy chat row (never a real contact). */
+private const val DECOY_CM_ID = "__decoy__"
 
 private sealed class Nav {
     object Lock : Nav()
@@ -35,6 +39,7 @@ private sealed class Nav {
     object MyId : Nav()
     object Knock : Nav()
     object Diagnostics : Nav()
+    object About : Nav()
     data class Tool(val which: String) : Nav()
 }
 
@@ -55,6 +60,7 @@ fun AppNav() {
 
     val torStatus by TorService.status.collectAsState()
     var showWipeConfirm by remember { mutableStateOf(false) }
+    var showReviewSettings by remember { mutableStateOf(false) }
 
     // Surface a crash from a previous run (debug-phase aid), then delete it.
     LaunchedEffect(Unit) {
@@ -72,6 +78,22 @@ fun AppNav() {
                 nav = Nav.Lock
             }
         }
+    }
+
+    if (showReviewSettings) {
+        AlertDialog(
+            onDismissRequest = { showReviewSettings = false },
+            title = { Text("Welcome") },
+            text = { Text("Please take your time to review the Settings page before you start.") },
+            confirmButton = {
+                TextButton(onClick = { showReviewSettings = false; nav = Nav.Settings }) {
+                    Text("Ok, take me to Settings.")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showReviewSettings = false }) { Text("I'll do it later.") }
+            },
+        )
     }
 
     if (showWipeConfirm) {
@@ -173,7 +195,7 @@ fun AppNav() {
     }
 
     when (val n = nav) {
-        Nav.Lock -> LockScreen(manager) { enteredPin, unlocked ->
+        Nav.Lock -> LockScreen(manager) { enteredPin, unlocked, firstRun ->
             pin = enteredPin
             data = unlocked
             // Always start INVISIBLE on login.
@@ -181,19 +203,31 @@ fun AppNav() {
             TorService.start(context)
             org.cmchat.app.guard.GuardController.init(context)
             nav = Nav.Circle
+            if (firstRun) showReviewSettings = true
         }
         Nav.Circle -> {
             val threads by ChatStore.threads.collectAsState()
-            val contacts = data?.contacts?.takeIf { it.isNotEmpty() }
+            val real = data?.contacts?.takeIf { it.isNotEmpty() }
                 ?.map {
                     Contact(it.name, Color(it.colorArgb),
                         unread = it.cmId?.let { id -> threads[id]?.unread } ?: false,
                         cmId = it.cmId)
                 }
                 ?: sampleCircle
+            // Decoy chat: a fake contact; tapping it silently Exits + wipes RAM.
+            val decoyOn by org.cmchat.app.settings.AppSettings.decoyEnabled.collectAsState()
+            val decoyName by org.cmchat.app.settings.AppSettings.decoyName.collectAsState()
+            val decoyTop by org.cmchat.app.settings.AppSettings.decoyAtTop.collectAsState()
+            val contacts = if (decoyOn) {
+                val decoy = Contact(decoyName, CmGreen, unread = false, cmId = DECOY_CM_ID)
+                if (decoyTop) listOf(decoy) + real else real + decoy
+            } else real
             CircleScreen(
                 contacts = contacts,
-                onOpenChat = { nav = Nav.Chat(it.name, it.cmId) },
+                onOpenChat = {
+                    if (it.cmId == DECOY_CM_ID) org.cmchat.app.LifecycleController.exit(context)
+                    else nav = Nav.Chat(it.name, it.cmId)
+                },
                 onOpenSettings = { nav = Nav.Settings },
                 onKnock = { nav = Nav.Knock },
                 onOpenTool = { nav = Nav.Tool(it) },
@@ -225,8 +259,11 @@ fun AppNav() {
             onWipeEverything = { showWipeConfirm = true },
             onOpenDiagnostics = { nav = Nav.Diagnostics },
             onExit = { org.cmchat.app.LifecycleController.exit(context) },
+            onAbout = { nav = Nav.About },
+            verifyPin = { manager.verify(it) },
         )
         Nav.Diagnostics -> org.cmchat.app.ui.screens.DiagnosticsScreen(onBack = { nav = Nav.Settings })
+        Nav.About -> org.cmchat.app.ui.screens.AboutScreen(onBack = { nav = Nav.Settings })
         Nav.MyId -> MyIdScreen(cmId = myCmId(data), onBack = { nav = Nav.Settings })
         Nav.Knock -> KnockScreen(
             myCmId = myCmId(data),

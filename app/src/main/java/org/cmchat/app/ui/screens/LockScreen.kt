@@ -26,7 +26,7 @@ import org.cmchat.app.vault.VaultManager
 private enum class Phase { UNLOCK, NEW_PIN, CONFIRM_PIN, NAME_FACE }
 
 @Composable
-fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
+fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData, firstRun: Boolean) -> Unit) {
     // Recomputed after a duress wipe so the screen falls back to first-run.
     var epoch by remember { mutableStateOf(0) }
     val firstRun = remember(epoch) { manager.firstRunNeeded() }
@@ -67,7 +67,7 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
             }
             Phase.UNLOCK -> {
                 when (val r = manager.unlock(entered)) {
-                    is UnlockResult.Success -> { wrongCount = 0; onUnlocked(entered, r.data) }
+                    is UnlockResult.Success -> { wrongCount = 0; onUnlocked(entered, r.data, false) }
                     UnlockResult.Duress -> { epoch += 1 } // silent: back to first-run
                     UnlockResult.WrongPin -> {
                         wrongCount += 1
@@ -122,7 +122,7 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
                 Modifier.clip(RoundedCornerShape(16.dp)).background(CmBlue)
                     .clickable {
                         val data = manager.createVault(firstPin, faceName)
-                        onUnlocked(firstPin, data)
+                        onUnlocked(firstPin, data, true)
                     }
                     .padding(horizontal = 28.dp, vertical = 12.dp),
             ) {

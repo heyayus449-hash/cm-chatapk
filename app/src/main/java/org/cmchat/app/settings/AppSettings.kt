@@ -45,6 +45,15 @@ object AppSettings {
     val stayReachable = MutableStateFlow(false)
 
     /**
+     * Decoy chat (default OFF): a fake, renamable contact shown in the Circle.
+     * Tapping it = silent instant Exit + RAM wipe, no confirmation. Its name and
+     * whether it sits at the top (vs bottom) are configurable.
+     */
+    val decoyEnabled = MutableStateFlow(false)
+    val decoyName = MutableStateFlow("Notes to self")
+    val decoyAtTop = MutableStateFlow(true)
+
+    /**
      * App context for posting notifications from background (buzz listener).
      * Application context only — never an Activity — so it cannot leak a window.
      */

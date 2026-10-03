@@ -6,8 +6,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,8 +28,22 @@ fun SettingsScreen(
     onWipeEverything: () -> Unit = {},
     onOpenDiagnostics: () -> Unit = {},
     onExit: () -> Unit = {},
+    onAbout: () -> Unit = {},
+    onLanguage: () -> Unit = {},
+    verifyPin: (String) -> Boolean = { false },
 ) {
     var textSize by remember { mutableStateOf(0f) }
+    var privacyUnlocked by remember { mutableStateOf(false) }
+    var askPin by remember { mutableStateOf(false) }
+
+    if (askPin) {
+        PinGateDialog(
+            verify = verifyPin,
+            onPass = { privacyUnlocked = true; askPin = false },
+            onDismiss = { askPin = false },
+        )
+    }
+
     Column(Modifier.fillMaxSize().background(CmBackground)) {
         Box(Modifier.fillMaxWidth().padding(16.dp)) {
             Text("‹ Back", color = CmBlue, fontFamily = Nunito, fontSize = 15.sp,
@@ -38,57 +55,148 @@ fun SettingsScreen(
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
 
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-                .background(CmCard).padding(14.dp)) {
-                Text("Text Size", color = CmText, fontFamily = Nunito, fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold)
-                Slider(value = textSize, onValueChange = { textSize = it },
-                    valueRange = -6f..6f)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("−6", color = CmTextFaint, fontFamily = Nunito, fontSize = 11.sp)
-                    Text("Default", color = CmTextFaint, fontFamily = Nunito, fontSize = 11.sp)
-                    Text("+6", color = CmTextFaint, fontFamily = Nunito, fontSize = 11.sp)
-                }
-            }
-
-            ToolToggle("Invisible mode (look offline)",
-                org.cmchat.app.settings.AppSettings.invisibleMode)
-            Setting("My Server", onClick = onOpenMyServer)
+            GroupHeader("Tags")
             Setting("Tag (Identity)")
-            Setting("Circle")
-            Setting("Cerberus · idle auto-wipe", "90 min")
-            Setting("Kill Timer", "not armed")
-            StayReachableRow()
-            GeneralTimerRow()
-            ToolToggle("Tool: Calculator", org.cmchat.app.tools.ToolsState.calcEnabled)
-            ToolToggle("Tool: Notes", org.cmchat.app.tools.ToolsState.notesEnabled)
-            ToolToggle("Tool: Flashlight", org.cmchat.app.tools.ToolsState.flashlightEnabled)
             Setting("My CMC-ID / QR", onClick = onOpenMyId)
-            ToolToggle("Metadata scrub (strip EXIF/GPS)", org.cmchat.app.settings.AppSettings.metadataScrub)
+
+            GroupHeader("Chats")
+            GeneralTimerRow()
             ToolToggle("Share my last-seen", org.cmchat.app.settings.AppSettings.shareLastSeen)
             BuzzFrequencyRow()
             ToolToggle("Let a Buzz reach me when closed",
                 org.cmchat.app.settings.AppSettings.buzzListenerWhenClosed)
             ToolToggle("Show sender name on alerts",
                 org.cmchat.app.settings.AppSettings.showBuzzSenderName)
-            Setting("Panic PIN")
-            Setting("Diagnostics", onClick = onOpenDiagnostics)
+
+            GroupHeader("Privacy & Safety 🔒")
+            if (!privacyUnlocked) {
+                Setting("Unlock Privacy & Safety", "tap", onClick = { askPin = true })
+            } else {
+                Setting("Cerberus · idle auto-wipe", "90 min")
+                Setting("Kill Timer", "not armed")
+                StayReachableRow()
+                ShredderRow()
+                DecoyGroup()
+                StatusDefaultRow()
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                    .background(CmRed.copy(alpha = 0.15f)).clickable { onWipeEverything() }.padding(14.dp),
+                    contentAlignment = Alignment.Center) {
+                    Text("Wipe Everything Now", color = CmRed, fontFamily = Nunito,
+                        fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+
+            GroupHeader("Server")
+            Setting("My Server", onClick = onOpenMyServer)
+            Setting("Bridges (obfs4 / Snowflake)", "coming")
+
+            GroupHeader("Tools")
+            ToolToggle("Tool: Calculator", org.cmchat.app.tools.ToolsState.calcEnabled)
+            ToolToggle("Tool: Notes", org.cmchat.app.tools.ToolsState.notesEnabled)
+            ToolToggle("Tool: Flashlight", org.cmchat.app.tools.ToolsState.flashlightEnabled)
+
+            GroupHeader("System")
+            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
+                .background(CmCard).padding(14.dp)) {
+                Text("Text Size", color = CmText, fontFamily = Nunito, fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold)
+                Slider(value = textSize, onValueChange = { textSize = it }, valueRange = -6f..6f)
+            }
+            ToolToggle("Metadata scrub (strip EXIF/GPS)", org.cmchat.app.settings.AppSettings.metadataScrub)
+            Setting("Diagnostics & troubleshoot", onClick = onOpenDiagnostics)
             Setting("Verify App Integrity")
-            Setting("About / Version")
+            Setting("Change PIN")
+            Setting("Language", onClick = onLanguage)
+            Setting("About / Version", onClick = onAbout)
             Spacer(Modifier.height(4.dp))
         }
 
-        Box(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp)
+        Box(Modifier.fillMaxWidth().padding(16.dp)
             .clip(RoundedCornerShape(14.dp)).background(CmCard).clickable { onExit() }.padding(14.dp),
             contentAlignment = Alignment.Center) {
             Text("Exit (stop server, clear RAM, log out)", color = CmText, fontFamily = Nunito,
                 fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
-        Box(Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(14.dp))
-            .background(CmRed.copy(alpha = 0.15f)).clickable { onWipeEverything() }.padding(14.dp),
-            contentAlignment = Alignment.Center) {
-            Text("Wipe Everything Now", color = CmRed, fontFamily = Nunito,
-                fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun GroupHeader(title: String) {
+    Text(title, color = CmBlue, fontFamily = Nunito, fontSize = 12.sp,
+        fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, start = 4.dp))
+}
+
+@Composable
+private fun PinGateDialog(verify: (String) -> Boolean, onPass: () -> Unit, onDismiss: () -> Unit) {
+    var pin by remember { mutableStateOf("") }
+    var err by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Enter your passcode") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = pin, onValueChange = { pin = it.take(64); err = false }, singleLine = true,
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                )
+                if (err) Text("Wrong passcode", color = CmRed, fontFamily = Nunito, fontSize = 12.sp)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { if (verify(pin)) onPass() else err = true }) { Text("Unlock") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun ShredderRow() {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmCard).padding(14.dp)) {
+        Text("Shredder PIN", color = CmText, fontFamily = Nunito, fontSize = 14.sp)
+        Text("Entering your PIN reversed silently wipes all data back to first-run.",
+            color = CmTextFaint, fontFamily = Nunito, fontSize = 11.sp)
+    }
+}
+
+@Composable
+private fun StatusDefaultRow() {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmCard).padding(14.dp)) {
+        Text("Status default", color = CmText, fontFamily = Nunito, fontSize = 14.sp)
+        Text("You always start Invisible at login; switch to Online from the Circle.",
+            color = CmTextFaint, fontFamily = Nunito, fontSize = 11.sp)
+    }
+}
+
+@Composable
+private fun DecoyGroup() {
+    val on by org.cmchat.app.settings.AppSettings.decoyEnabled.collectAsState()
+    val name by org.cmchat.app.settings.AppSettings.decoyName.collectAsState()
+    val top by org.cmchat.app.settings.AppSettings.decoyAtTop.collectAsState()
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmCard).padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Decoy chat", color = CmText, fontFamily = Nunito, fontSize = 14.sp)
+                Text("A fake contact; tapping it silently Exits + wipes RAM.",
+                    color = CmTextFaint, fontFamily = Nunito, fontSize = 11.sp)
+            }
+            Text(if (on) "On" else "Off", color = if (on) CmGreen else CmTextDim,
+                fontFamily = Nunito, fontSize = 13.sp, fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable { org.cmchat.app.settings.AppSettings.decoyEnabled.value = !on })
+        }
+        if (on) {
+            OutlinedTextField(
+                value = name, onValueChange = { org.cmchat.app.settings.AppSettings.decoyName.value = it.take(24) },
+                singleLine = true, label = { Text("Decoy name", color = CmTextDim) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Position", color = CmTextDim, fontFamily = Nunito, fontSize = 13.sp,
+                    modifier = Modifier.weight(1f))
+                Text(if (top) "Top" else "Bottom", color = CmBlue, fontFamily = Nunito, fontSize = 13.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable { org.cmchat.app.settings.AppSettings.decoyAtTop.value = !top })
+            }
         }
     }
 }

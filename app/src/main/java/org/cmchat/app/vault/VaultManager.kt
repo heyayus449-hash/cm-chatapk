@@ -47,6 +47,9 @@ class VaultManager(val crypto: CryptoManager, dir: File) {
         return UnlockResult.WrongPin
     }
 
+    /** Verify the passcode with NO side effects (no duress wipe). For PIN gates. */
+    fun verify(pin: String): Boolean = vault.exists() && vault.load(pin) != null
+
     fun save(pin: String, data: VaultData) = vault.save(pin, data)
 
     fun wipe() = vault.wipe()

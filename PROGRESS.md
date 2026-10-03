@@ -212,6 +212,22 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Guardians / safety + Settings groups
+- Settings reorganised into groups: Tags · Chats · [PIN-gated] Privacy & Safety ·
+  Server · Tools · System.
+- Privacy & Safety is PIN-gated: a side-effect-free VaultManager.verify unlocks
+  the group (Cerberus, Kill Timer, Stay-reachable, Shredder PIN, Decoy, status
+  default, Wipe Everything).
+- "Panic PIN" -> "Shredder PIN" (mechanism = reverse-PIN silent wipe, unchanged).
+- Decoy chat: toggle + renamable name + position (top/bottom). Shows as a fake
+  contact in the Circle; tapping it = silent instant Exit + RAM wipe, no confirm.
+- First run after creating the Tag: a prompt "Please take your time to review the
+  Settings page before you start." with "Ok, take me to Settings." / "I'll do it
+  later." (later -> main screen).
+- About / Version: the serious numbered CMC safety welcome (AboutScreen).
+- Cerberus/Kill/Wipe/reverse-PIN mechanisms unchanged. Last-seen already matches
+  the spec (recently within 24h of activity, else nothing).
+
 ## Tools dock (flashlight + calc fix)
 - Flashlight tool: CameraManager.setTorchMode (no camera permission). Dock circle
   glyph ☀; a tap screen toggles the torch; forced off on wipe/exit. Settings
