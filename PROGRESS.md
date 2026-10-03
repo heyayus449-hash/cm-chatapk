@@ -212,6 +212,26 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## CRITICAL crash fix — ForegroundServiceDidNotStartInTime (definitive)
+- Repro: launch on Android 14 (Ulefone Armor 22). On unlock we started Tor; the
+  service died with ForegroundServiceDidNotStartInTimeException at the point we
+  called startForegroundService() for Guardian's org.torproject.jni.TorService,
+  plus random ANRs.
+- Root cause (verified by decompiling tor-android 0.4.9.5): Guardian's TorService
+  .onCreate does NOT call startForeground() at all — it only broadcasts status and
+  starts the tor thread. Starting it via startForegroundService() therefore makes
+  the OS wait 5s for a startForeground() that never comes -> crash. We were running
+  TWO foreground services and the Guardian one could never satisfy the timer.
+- Fix: run ONE foreground service (ours). We now ONLY bindService() the Guardian
+  service (BIND_AUTO_CREATE), which runs its onCreate -> tor thread on its own
+  worker; we never startForegroundService() it. Our onCreate calls startForeground
+  as the literal first action (channel created first); on failure it falls back to
+  an untyped call and finally stopSelf (never lingers to be watchdog-killed).
+  FGS launches are wrapped so an API 12+ background-start rejection can't crash.
+  All Tor/bootstrap/ADD_ONION work stays on Dispatchers.IO (no main-thread ANR).
+- API 34 path: typed startForeground (FOREGROUND_SERVICE_TYPE_DATA_SYNC) on API
+  29+, permission declared. Compile-verified; on-device confirmation pending.
+
 ## Security adds (status)
 - Onion hidden-service key: encrypted in the vault (libsodium secretbox) and
   handed to Tor over the control port (ADD_ONION). It is NEVER written to Tor's

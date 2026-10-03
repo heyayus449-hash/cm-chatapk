@@ -66,9 +66,16 @@ class TorService : Service() {
         fun socksPort(): Int = instance?.gpService?.socksPort ?: 9050
 
         fun start(context: Context) {
-            ContextCompat.startForegroundService(
-                context, Intent(context, TorService::class.java)
-            )
+            // Only valid from a foreground context. On API 12+ a background start
+            // throws ForegroundServiceStartNotAllowed — catch it (no crash); the
+            // next foreground resume will start Tor.
+            try {
+                ContextCompat.startForegroundService(
+                    context, Intent(context, TorService::class.java)
+                )
+            } catch (e: Exception) {
+                org.cmchat.app.diag.Diag.e("tor", "deferred FGS start (not foreground)", e)
+            }
         }
 
         fun stop(context: Context) {
@@ -108,15 +115,20 @@ class TorService : Service() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        // Go foreground IMMEDIATELY, before any Tor work, or Android kills the
-        // service (ForegroundServiceDidNotStartInTime). API-branched + typed.
+        // startForeground() is the LITERAL FIRST action, before any Tor work, so
+        // we never trip ForegroundServiceDidNotStartInTime. The channel is created
+        // inside goForeground() before the call.
         goForeground()
         _status.value = TorStatus.Starting
         LocalBroadcastManager.getInstance(this).registerReceiver(
             statusReceiver, IntentFilter(GpTorService.ACTION_STATUS)
         )
+        // IMPORTANT: Guardian's org.torproject.jni.TorService never calls
+        // startForeground() itself, so starting it with startForegroundService()
+        // guarantees the 5s crash. We therefore ONLY BIND it (BIND_AUTO_CREATE) —
+        // binding runs its onCreate -> starts the tor thread on its own worker —
+        // and WE remain the single foreground service. No chained FGS, no race.
         val intent = Intent(this, GpTorService::class.java)
-        ContextCompat.startForegroundService(this, intent)
         bound = bindService(intent, gpConnection, Context.BIND_AUTO_CREATE)
     }
 
@@ -128,10 +140,17 @@ class TorService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    /** startForeground, immediate and API-branched; typed on API 29+. */
+    /**
+     * startForeground, immediate and API-branched (channel first; typed on API
+     * 29+). This MUST succeed or the OS kills us — so on failure we fall back to
+     * an untyped call, and if even that fails we stopSelf rather than linger as a
+     * zombie that the watchdog would crash.
+     */
     private fun goForeground() {
-        runCatching {
-            val notif = buildNotification()
+        val notif = try { buildNotification() } catch (e: Exception) {
+            org.cmchat.app.diag.Diag.e("tor", "notification build failed", e); stopSelf(); return
+        }
+        try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
                     NOTIF_ID, notif,
@@ -140,7 +159,13 @@ class TorService : Service() {
             } else {
                 startForeground(NOTIF_ID, notif)
             }
-        }.onFailure { org.cmchat.app.diag.Diag.e("tor", "startForeground failed", it) }
+        } catch (e: Exception) {
+            org.cmchat.app.diag.Diag.e("tor", "typed startForeground failed; retry untyped", e)
+            try { startForeground(NOTIF_ID, notif) }
+            catch (e2: Exception) {
+                org.cmchat.app.diag.Diag.e("tor", "startForeground failed; stopping", e2); stopSelf()
+            }
+        }
     }
 
     // The app was swiped from recents. Hand off to the lifecycle policy, which

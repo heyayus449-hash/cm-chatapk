@@ -29,9 +29,15 @@ class BuzzListenerService : Service() {
         private const val NOTIF_ID = 7002
 
         fun start(context: Context) {
-            ContextCompat.startForegroundService(
-                context, Intent(context, BuzzListenerService::class.java)
-            )
+            // Started from onTaskRemoved (just-backgrounded); a background-start
+            // rejection on API 12+ must not crash — we simply don't listen then.
+            try {
+                ContextCompat.startForegroundService(
+                    context, Intent(context, BuzzListenerService::class.java)
+                )
+            } catch (e: Exception) {
+                org.cmchat.app.diag.Diag.e("buzz", "listener FGS start refused", e)
+            }
         }
 
         fun stop(context: Context) {
@@ -41,14 +47,17 @@ class BuzzListenerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        runCatching {
-            val notif = buildNotification()
+        // startForeground is the first action; fall back untyped, else stopSelf.
+        val notif = try { buildNotification() } catch (e: Exception) { stopSelf(); return }
+        try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(
                     NOTIF_ID, notif,
                     android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
                 )
             } else startForeground(NOTIF_ID, notif)
+        } catch (e: Exception) {
+            try { startForeground(NOTIF_ID, notif) } catch (e2: Exception) { stopSelf(); return }
         }
         org.cmchat.app.diag.Diag.i("buzz", "scout listener up")
     }
