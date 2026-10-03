@@ -212,6 +212,14 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Screens / UI
+- Logo glow is now a letter-by-letter SWEEP (a bright point crosses the wordmark):
+  6.5s cycle on the Circle page, 3.25s (2x) on the lock + first-run naming screen.
+- Circle header: orange "+" only (done earlier), bigger logo, smaller status text.
+- Chat bar guardians display-only (done earlier). First-run "review Settings"
+  prompt + About/Version safety welcome (done in the guardians/settings commit).
+- PIN keypad taps are already immediate (direct clickable, auto-submit at 6).
+
 ## Team Hour (persisted)
 - ContactRec.teamHour (encrypted in the vault, per contact) survives logout.
   Editable in the chat ("Set Team clock" / tap to edit), seeded into the thread

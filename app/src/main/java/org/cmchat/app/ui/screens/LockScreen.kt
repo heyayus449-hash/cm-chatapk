@@ -85,7 +85,7 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData, firstRun: 
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.height(60.dp))
-        CmChatLogo(size = 30)
+        CmChatLogo(size = 30, sweepMs = 3250)
         Spacer(Modifier.height(10.dp))
         Text(
             when (phase) {
