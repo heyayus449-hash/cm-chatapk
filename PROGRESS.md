@@ -212,6 +212,25 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Security adds (status)
+- Onion hidden-service key: encrypted in the vault (libsodium secretbox) and
+  handed to Tor over the control port (ADD_ONION). It is NEVER written to Tor's
+  data dir — it lives in Tor's memory only while running and is removed on
+  DEL_ONION/stop. Exceeds the "written to Tor dir only while running" ask.
+- RAM-only logs: Diag is a RAM ring buffer; onion addresses are only ever logged
+  there, never to disk. (The debug-phase CrashCatcher writes one crash file,
+  deleted next launch; it stays gated by its ENABLED flag for real releases.)
+- Lock + wipe keys from RAM on background: done (onStop -> lockRequests clears
+  the PIN + decrypted vault from the UI layer) unless stay-reachable is on.
+- Onion-only network guard + fail-closed: done (Transport.isOnionHost; sends
+  require Tor Online).
+
+## Deferred (owner decisions)
+- Bridges (obfs4 + Snowflake): needs PT binaries (IPtProxy); no mock shipped.
+- Languages (full i18n): externalizing every string + runtime picker + 11 locale
+  scaffolds is a large mechanical refactor; deferred to a dedicated pass so the
+  picker isn't half-wired. English strings remain inline and complete.
+
 ## Screens / UI
 - Logo glow is now a letter-by-letter SWEEP (a bright point crosses the wordmark):
   6.5s cycle on the Circle page, 3.25s (2x) on the lock + first-run naming screen.
