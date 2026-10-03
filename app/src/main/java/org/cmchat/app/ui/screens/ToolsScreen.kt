@@ -37,7 +37,29 @@ fun ToolsScreen(which: String, onBack: () -> Unit) {
         when (which) {
             "calculator" -> CalculatorUi()
             "notes" -> NotesUi()
+            "flashlight" -> FlashlightUi()
         }
+    }
+}
+
+@Composable
+private fun FlashlightUi() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val on by org.cmchat.app.tools.Flashlight.on.collectAsState()
+    Column(Modifier.fillMaxSize().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center) {
+        Box(
+            Modifier.size(140.dp).clip(CircleShape)
+                .background(if (on) CmOrange else CmCard)
+                .clickable { org.cmchat.app.tools.Flashlight.toggle(context) },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("☀", color = if (on) Color.White else CmTextDim, fontSize = 64.sp)
+        }
+        Spacer(Modifier.height(16.dp))
+        Text(if (on) "Torch ON — tap to turn off" else "Tap to turn the torch on",
+            color = CmTextDim, fontFamily = Nunito, fontSize = 14.sp)
     }
 }
 

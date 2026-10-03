@@ -65,6 +65,17 @@ class ToolsTest {
     }
 
     @Test
+    fun calc_engine_overflow_is_error() {
+        val e = CalcEngine()
+        // 999999999 * 999999999 = ~1e18 -> more than 15 digits -> Error
+        "999999999".forEach { e.digit(it - '0') }
+        e.op('*')
+        "999999999".forEach { e.digit(it - '0') }
+        e.equals()
+        assertEquals("Error", e.display)
+    }
+
+    @Test
     fun calc_engine_divide_by_zero_is_error() {
         val e = CalcEngine()
         e.digit(5); e.op('/'); digitZero(e); e.equals()

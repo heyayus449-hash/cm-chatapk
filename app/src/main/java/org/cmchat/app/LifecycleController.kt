@@ -98,6 +98,7 @@ object LifecycleController {
         MessageService.buzzOnlyMode = false
         MessageService.activeChatCmId = null
         listening = false
+        org.cmchat.app.tools.Flashlight.off(ctx)
         ServerController.stop()
         BuzzListenerService.stop(ctx)
         TorService.stop(ctx)

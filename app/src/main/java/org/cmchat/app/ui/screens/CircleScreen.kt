@@ -51,6 +51,7 @@ fun CircleScreen(
     val knocks by MessageService.incomingKnocks.collectAsState()
     val calcOn by ToolsState.calcEnabled.collectAsState()
     val notesOn by ToolsState.notesEnabled.collectAsState()
+    val flashOn by ToolsState.flashlightEnabled.collectAsState()
     val invisible by org.cmchat.app.settings.AppSettings.invisibleMode.collectAsState()
     Column(Modifier.fillMaxSize().background(CmBackground)) {
         Row(
@@ -149,11 +150,12 @@ fun CircleScreen(
 
         // Active tools: transparent circles with a symbol glyph, centred and
         // evenly spaced regardless of count.
-        if (calcOn || notesOn) {
+        if (calcOn || notesOn || flashOn) {
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterHorizontally)) {
                 if (calcOn) DockTool("Calculator", "calculator", "▦", onOpenTool)
                 if (notesOn) DockTool("Notes", "notes", "☑", onOpenTool)
+                if (flashOn) DockTool("Flashlight", "flashlight", "☀", onOpenTool)
             }
         }
 

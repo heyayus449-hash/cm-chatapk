@@ -212,6 +212,17 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Tools dock (flashlight + calc fix)
+- Flashlight tool: CameraManager.setTorchMode (no camera permission). Dock circle
+  glyph ☀; a tap screen toggles the torch; forced off on wipe/exit. Settings
+  toggle added. Dock = Calculator + Notes + Flashlight, transparent circles,
+  centred by count.
+- Calculator display fixed: entry capped to 15 significant digits; any result
+  with >=15 integer digits or non-finite shows "Error"; big/decimal numbers
+  formatted via BigDecimal(15 sig figs, trailing zeros trimmed). Unit-tested
+  (overflow -> Error).
+- Notes checklist (Add check / green-tick strike-through) already in place.
+
 ## Presence / lifecycle
 - Start INVISIBLE every login (invisibleMode=true on unlock). Online/Invisible
   toggle in the Circle header; going Online calls ChatStore.markMissedSeen (self-

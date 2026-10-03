@@ -86,6 +86,7 @@ object GuardController {
             org.cmchat.app.diag.CrashCatcher.delete(it)
             org.cmchat.app.notify.Notifier.clearAll(it)
             org.cmchat.app.tor.BuzzListenerService.stop(it)
+            org.cmchat.app.tools.Flashlight.off(it)
         }
         ServerController.stop()
         appContext?.let { TorService.stop(it) }

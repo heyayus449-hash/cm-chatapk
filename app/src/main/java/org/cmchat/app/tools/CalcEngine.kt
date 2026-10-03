@@ -23,7 +23,10 @@ class CalcEngine {
 
     fun digit(d: Int) {
         lastCe = false
-        if (fresh || display == "0") display = d.toString() else display += d.toString()
+        val next = if (fresh || display == "0") d.toString() else display + d.toString()
+        // Cap entry to 15 significant digits (ignore extra keystrokes).
+        if (next.count { it.isDigit() } > MAX_DIGITS) return
+        display = next
         fresh = false
     }
 
@@ -92,8 +95,20 @@ class CalcEngine {
     }
 
     private fun format(d: Double): String {
-        if (d.isNaN() || d.isInfinite()) return "Error"
-        return if (d == d.toLong().toDouble()) d.toLong().toString()
-        else d.toString()
+        if (d.isNaN() || d.isInfinite()) return ERROR
+        // Whole numbers: plain integer, but >15 digits overflows -> Error.
+        if (d == Math.floor(d) && !d.isInfinite() && kotlin.math.abs(d) < 1e15) {
+            return d.toLong().toString()
+        }
+        if (kotlin.math.abs(d) >= 1e15) return ERROR
+        // Trim to <=15 significant digits; strip trailing zeros.
+        var s = java.math.BigDecimal(d).round(java.math.MathContext(MAX_DIGITS)).toPlainString()
+        if (s.contains('.')) s = s.trimEnd('0').trimEnd('.')
+        return if (s.replace("-", "").replace(".", "").length > MAX_DIGITS) ERROR else s
+    }
+
+    companion object {
+        const val MAX_DIGITS = 15
+        const val ERROR = "Error"
     }
 }

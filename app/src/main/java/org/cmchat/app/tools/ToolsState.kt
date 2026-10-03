@@ -13,6 +13,7 @@ data class NoteCheck(val id: Long, val text: String, val done: Boolean = false)
 object ToolsState {
     val calcEnabled = MutableStateFlow(false)
     val notesEnabled = MutableStateFlow(false)
+    val flashlightEnabled = MutableStateFlow(false)
 
     /** RAM-only scratchpad; exists only while the app is open. */
     val notes = MutableStateFlow("")
@@ -34,7 +35,7 @@ object ToolsState {
         checks.value = checks.value.map { if (it.id == id) it.copy(done = !it.done) else it }
     }
 
-    fun anyEnabled(): Boolean = calcEnabled.value || notesEnabled.value
+    fun anyEnabled(): Boolean = calcEnabled.value || notesEnabled.value || flashlightEnabled.value
 
     fun clear() { notes.value = ""; checks.value = emptyList() }
 }
