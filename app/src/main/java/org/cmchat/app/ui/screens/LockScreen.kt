@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.cmchat.app.ui.components.CmChatLogo
 import org.cmchat.app.ui.theme.*
+import org.cmchat.app.vault.LoginThrottle
 import org.cmchat.app.vault.UnlockResult
 import org.cmchat.app.vault.VaultData
 import org.cmchat.app.vault.VaultManager
@@ -44,6 +45,8 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
             delay(1000)
             lockedFor -= 1
         }
+        // After the 30-minute lockout elapses, reset the attempt counter to zero.
+        if (wrongCount > LoginThrottle.SCHEDULE.size) wrongCount = 0
     }
 
     fun submitPin(entered: String) {
@@ -69,7 +72,7 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
                     UnlockResult.WrongPin -> {
                         wrongCount += 1
                         status = "Wrong PIN"
-                        if (wrongCount >= 5) lockedFor = (wrongCount - 4) * 10
+                        lockedFor = LoginThrottle.delaySeconds(wrongCount)
                     }
                 }
             }
@@ -141,7 +144,7 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                if (lockedFor > 0) "Try again in ${lockedFor}s" else status,
+                if (lockedFor > 0) "Try again in " + LoginThrottle.format(lockedFor) else status,
                 color = if (lockedFor > 0 || status.isNotEmpty()) CmRed else CmBackground,
                 fontFamily = Nunito, fontSize = 13.sp,
             )
@@ -167,7 +170,7 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
             }
             Spacer(Modifier.height(18.dp))
             Text(
-                if (lockedFor > 0) "Try again in ${lockedFor}s" else status,
+                if (lockedFor > 0) "Try again in " + LoginThrottle.format(lockedFor) else status,
                 color = if (lockedFor > 0 || status.isNotEmpty()) CmRed else CmBackground,
                 fontFamily = Nunito, fontSize = 13.sp,
             )

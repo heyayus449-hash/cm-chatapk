@@ -212,6 +212,12 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Login security
+- Escalating failed-attempt delay (LoginThrottle, unit-tested): 2,4,8,20,40,60,
+  80,120,150,200,250,300s for attempts 1-12, then a 30-minute lockout; the
+  counter resets to zero after the lockout elapses. Lock message formats mm/ss.
+  No password recovery (unchanged).
+
 ## Network hardening
 - Onion-only guard + fail-closed: done in the urgent Tor fixes (connectThroughTor
   refuses non-onion; sends require Tor Online).
