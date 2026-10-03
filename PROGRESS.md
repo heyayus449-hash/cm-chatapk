@@ -212,6 +212,15 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Lock screen: alphanumeric in place
+- The "Aa" toggle now shows the passcode field ON the same lock screen (no new
+  window) with the system keyboard auto-focused; Done submits; "123" returns to
+  the number pad. Input capped at 128 chars, newlines stripped.
+- Security: audited — the passcode is only ever passed to Argon2 key derivation
+  (cryptoPwHash) as bytes. No Runtime.exec/ProcessBuilder/Class.forName/
+  reflection/ScriptEngine anywhere; Calculator.eval is a pure arithmetic parser
+  used only by the calculator tool, never the passcode.
+
 ## CRITICAL crash fix — ForegroundServiceDidNotStartInTime (definitive)
 - Repro: launch on Android 14 (Ulefone Armor 22). On unlock we started Tor; the
   service died with ForegroundServiceDidNotStartInTimeException at the point we

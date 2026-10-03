@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -130,17 +131,31 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData, firstRun: 
                     fontSize = 16.sp, fontWeight = FontWeight.Bold)
             }
         } else if (alpha) {
-            // Alphanumeric passcode: variable length, explicit submit.
+            // Alphanumeric passcode IN PLACE on this same screen: the field gets
+            // focus and the system keyboard opens here (no new window/screen). The
+            // passcode is opaque input — it is ONLY fed to Argon2 key derivation as
+            // bytes, never executed/evaluated/reflected anywhere. Cap 128 chars.
+            val focus = remember { androidx.compose.ui.focus.FocusRequester() }
+            LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
             OutlinedTextField(
                 value = pin,
-                onValueChange = { pin = it.take(64) },
+                onValueChange = { pin = it.take(128).filter { c -> c != '\n' } },
                 singleLine = true,
+                label = { Text("Passcode", color = CmTextDim) },
                 visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
+                    imeAction = androidx.compose.ui.text.input.ImeAction.Done,
+                ),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                    onDone = { if (lockedFor <= 0 && pin.isNotEmpty()) { val e = pin; pin = ""; submitPin(e) } },
+                ),
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = CmCard, unfocusedContainerColor = CmCard,
                     focusedTextColor = CmText, unfocusedTextColor = CmText,
                     cursorColor = CmBlue,
                 ),
+                modifier = Modifier.fillMaxWidth().focusRequester(focus),
             )
             Spacer(Modifier.height(12.dp))
             Text(
