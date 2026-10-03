@@ -53,7 +53,7 @@ fun SettingsScreen(
             ToolToggle("Invisible mode (look offline)",
                 org.cmchat.app.settings.AppSettings.invisibleMode)
             Setting("My Server", onClick = onOpenMyServer)
-            Setting("Faces (Identities)")
+            Setting("Tag (Identity)")
             Setting("Circle")
             Setting("Cerberus · idle auto-wipe", "90 min")
             Setting("Kill Timer", "not armed")

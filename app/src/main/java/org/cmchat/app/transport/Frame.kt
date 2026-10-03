@@ -16,7 +16,10 @@ enum class FrameType(val code: Int) {
     FILE_CHUNK(10),
     FILE_DONE(11),
     /** Scout ping. Fire-and-forget: no ack, no retry, no content, no state. */
-    BUZZ(12);
+    BUZZ(12),
+
+    /** Signed address-update: sender's new CMC-ID after rotating their onion. */
+    ADDR_UPDATE(13);
 
     companion object {
         fun fromCode(code: Int): FrameType? = entries.firstOrNull { it.code == code }

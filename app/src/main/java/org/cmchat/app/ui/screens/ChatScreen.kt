@@ -34,8 +34,15 @@ import org.cmchat.app.ui.components.CerberusMark
 import org.cmchat.app.ui.theme.*
 
 @Composable
-fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
+fun ChatScreen(
+    contactName: String,
+    chatCmId: String?,
+    onBack: () -> Unit,
+    onRename: (String) -> Unit = {},
+) {
     val chatId = chatCmId ?: contactName
+    var renaming by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf(contactName) }
     val threads by ChatStore.threads.collectAsState()
     val thread = threads[chatId] ?: org.cmchat.app.chat.ChatThread()
 
@@ -81,8 +88,26 @@ fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
         Box(Modifier.fillMaxWidth().padding(14.dp)) {
             Text("‹ Circle", color = CmBlue, fontFamily = Nunito, fontSize = 15.sp,
                 modifier = Modifier.align(Alignment.CenterStart).clickable { onBack() })
-            Text(contactName, color = CmText, fontFamily = Nunito, fontSize = 20.sp,
-                fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.Center))
+            if (renaming && chatCmId != null) {
+                BasicTextField(
+                    value = newName, onValueChange = { newName = it.take(24) }, singleLine = true,
+                    textStyle = TextStyle(color = CmText, fontFamily = Nunito, fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center),
+                    cursorBrush = SolidColor(CmBlue),
+                    modifier = Modifier.align(Alignment.Center).widthIn(max = 200.dp),
+                )
+                Text("Save", color = CmGreen, fontFamily = Nunito, fontSize = 13.sp,
+                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 52.dp).clickable {
+                        val n = newName.trim(); if (n.isNotEmpty()) onRename(n); renaming = false
+                    })
+            } else {
+                Text(contactName, color = CmText, fontFamily = Nunito, fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.align(Alignment.Center).clickable {
+                        if (chatCmId != null) { newName = contactName; renaming = true }
+                    })
+            }
             Text("Erase", color = CmRed, fontFamily = Nunito, fontSize = 14.sp,
                 modifier = Modifier.align(Alignment.CenterEnd).clickable {
                     if (chatCmId != null) MessageService.sendErase(chatCmId) else ChatStore.erase(chatId)

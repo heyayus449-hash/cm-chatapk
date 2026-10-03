@@ -28,6 +28,7 @@ fun MyServerScreen(
     onStop: () -> Unit,
     onRestart: () -> Unit,
     onBack: () -> Unit,
+    onRequestNewAddress: () -> Unit = {},
 ) {
     val tor by TorService.status.collectAsState()
     val server by ServerController.status.collectAsState()
@@ -64,7 +65,7 @@ fun MyServerScreen(
             val online = server as? ServerStatus.Online
             Text("Onion address", color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp)
             Text(online?.onion ?: "—", color = CmText, fontFamily = Nunito, fontSize = 13.sp)
-            Text("Face: ${online?.faceName ?: "—"}", color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp)
+            Text("Tag: ${online?.faceName ?: "—"}", color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp)
             val uptime = online?.let { formatUptime(now - it.sinceMs) } ?: "—"
             Text("Uptime: $uptime", color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp)
             (server as? ServerStatus.Failed)?.let {
@@ -94,6 +95,18 @@ fun MyServerScreen(
             Text(it, color = CmTextDim, fontFamily = Nunito, fontSize = 13.sp,
                 modifier = Modifier.padding(horizontal = 16.dp))
         }
+        Spacer(Modifier.height(10.dp))
+        Box(Modifier.padding(horizontal = 16.dp)) {
+            ServerButton("Request new address", CmCard, Modifier.fillMaxWidth(), textColor = CmOrange) {
+                onRequestNewAddress()
+            }
+        }
+        Text(
+            "Rotates to a fresh onion and tells your contacts; the old address " +
+                "stays alive ~24h so no one drops.",
+            color = CmTextFaint, fontFamily = Nunito, fontSize = 11.sp,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
+        )
         Spacer(Modifier.weight(1f))
     }
 }

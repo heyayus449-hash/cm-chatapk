@@ -37,6 +37,10 @@ object MessageService {
     @Volatile
     var onContactAccepted: ((KnockRequest) -> Unit)? = null
 
+    /** Set by AppNav to persist a contact's rotated address (old cmId -> new). */
+    @Volatile
+    var onContactAddressUpdated: ((oldCmId: String, newCmId: String) -> Unit)? = null
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     private var crypto: CryptoManager? = null
@@ -164,6 +168,20 @@ object MessageService {
         scope.launch { runCatching { sendBox(c, sec, peer, FrameType.ERASE_CHAT, ByteArray(0)) } }
     }
 
+    /**
+     * Tell every contact my new CMC-ID after rotating my onion. Authenticated by
+     * crypto_box from my identity key (only I can produce it) — the "signed"
+     * address-update. Contacts auto-relink to the new onion.
+     */
+    fun sendAddressUpdate(newCmId: String) {
+        val c = crypto ?: return; val sec = mySec ?: return
+        myCmId = newCmId
+        val payload = newCmId.toByteArray()
+        contacts.values.toList().forEach { peer ->
+            scope.launch { runCatching { sendBox(c, sec, peer, FrameType.ADDR_UPDATE, payload) } }
+        }
+    }
+
     fun sendStatus(word: String, colorArgb: Long) {
         val c = crypto ?: return; val sec = mySec ?: return
         val payload = Messages.json.encodeToString(StatusPayload.serializer(),
@@ -258,8 +276,26 @@ object MessageService {
             FrameType.ERASE_CHAT -> ChatStore.erase(chatCmId)
             FrameType.KNOCK_ACCEPT -> ChatStore.touchPeer(chatCmId)
             FrameType.BUZZ -> onBuzz(chatCmId)
+            FrameType.ADDR_UPDATE -> onAddressUpdate(chatCmId, peer, body)
             else -> {}
         }
+    }
+
+    /**
+     * A contact rotated their onion. The frame is authenticated (we opened it
+     * with [peer]'s identity key), so we trust the new cmId ONLY if it carries
+     * the same identity pubkey — then we re-link to the new onion and persist.
+     */
+    private fun onAddressUpdate(oldCmId: String, peer: CmIdData, body: ByteArray) {
+        val newCmId = runCatching { String(body) }.getOrNull() ?: return
+        val decoded = CmId.decode(newCmId) ?: return
+        if (!decoded.identityPubKeyHex.equals(peer.identityPubKeyHex, ignoreCase = true)) return
+        if (newCmId == oldCmId) return
+        contacts.remove(oldCmId)
+        contacts[newCmId] = decoded
+        names.remove(oldCmId)?.let { names[newCmId] = it }
+        onContactAddressUpdated?.invoke(oldCmId, newCmId)
+        org.cmchat.app.diag.Diag.i("addr", "contact relinked to new address")
     }
 
     /** When the scout listener is alive, only a BUZZ does anything. */

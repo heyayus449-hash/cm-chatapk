@@ -212,6 +212,19 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Identity / contacts
+- "Faces" -> "Tag" in the UI (first-run naming, Settings row, My Server label).
+  CMC-ID prefix cmc1: unchanged.
+- Self-add blocked: Knock shows "That's your own ID" if you enter your own CMC-ID.
+- Accepted knock autopopulates the nickname from the requester's display name
+  (unchanged); you can now rename a contact by tapping their name in the chat
+  header (persisted to the vault).
+- Address rotation (manual): My Server -> "Request new address" publishes a NEW
+  onion while keeping the OLD one registered ~24h (overlap so none drop), then
+  sends a signed ADDR_UPDATE (crypto_box-authenticated by the identity key) to
+  all contacts; receivers verify the identity pubkey matches and auto-relink to
+  the new onion, persisting it. Device-only to exercise end-to-end.
+
 ## Login security
 - Escalating failed-attempt delay (LoginThrottle, unit-tested): 2,4,8,20,40,60,
   80,120,150,200,250,300s for attempts 1-12, then a 30-minute lockout; the

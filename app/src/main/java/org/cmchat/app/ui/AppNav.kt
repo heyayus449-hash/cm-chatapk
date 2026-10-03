@@ -101,7 +101,18 @@ fun AppNav() {
             myIdentitySecHex = face.secretKey,
             myCmId = myCmId(d),
             knownContactCmIds = d.contacts.mapNotNull { it.cmId },
+            contactNames = d.contacts.mapNotNull { c -> c.cmId?.let { it to c.name } }.toMap(),
         )
+        // A contact rotated their onion: update their stored cmId in the vault.
+        MessageService.onContactAddressUpdated = upd@{ oldCmId, newCmId ->
+            val p = pin ?: return@upd
+            val cur = data ?: return@upd
+            val updated = cur.copy(
+                contacts = cur.contacts.map { if (it.cmId == oldCmId) it.copy(cmId = newCmId) else it }
+            )
+            runCatching { manager.save(p, updated) }
+            data = updated
+        }
         // Persist an accepted knock as a contact in the vault.
         MessageService.onContactAccepted = accepted@{ req ->
             val p = pin ?: return@accepted
@@ -174,7 +185,24 @@ fun AppNav() {
                 onOpenTool = { nav = Nav.Tool(it) },
             )
         }
-        is Nav.Chat -> ChatScreen(n.name, n.cmId) { nav = Nav.Circle }
+        is Nav.Chat -> ChatScreen(
+            contactName = n.name,
+            chatCmId = n.cmId,
+            onBack = { nav = Nav.Circle },
+            onRename = { newName ->
+                val p = pin; val cur = data
+                if (p != null && cur != null && n.cmId != null) {
+                    val updated = cur.copy(
+                        contacts = cur.contacts.map {
+                            if (it.cmId == n.cmId) it.copy(name = newName) else it
+                        }
+                    )
+                    runCatching { manager.save(p, updated) }
+                    data = updated
+                    nav = Nav.Chat(newName, n.cmId)
+                }
+            },
+        )
         is Nav.Tool -> org.cmchat.app.ui.screens.ToolsScreen(n.which) { nav = Nav.Circle }
         Nav.Settings -> SettingsScreen(
             onBack = { nav = Nav.Circle },
@@ -186,6 +214,7 @@ fun AppNav() {
         Nav.Diagnostics -> org.cmchat.app.ui.screens.DiagnosticsScreen(onBack = { nav = Nav.Settings })
         Nav.MyId -> MyIdScreen(cmId = myCmId(data), onBack = { nav = Nav.Settings })
         Nav.Knock -> KnockScreen(
+            myCmId = myCmId(data),
             onSend = { cmId, _ ->
                 MessageService.sendKnock(cmId) {}
                 nav = Nav.Circle
@@ -201,6 +230,26 @@ fun AppNav() {
                 onStop = { ServerController.stop() },
                 onRestart = {
                     if (face != null) ServerController.restart(face.name, face.onionKey, face.onionAddress) {}
+                },
+                onRequestNewAddress = {
+                    val p = pin; val cur = data
+                    if (p != null && cur != null && face != null) {
+                        ServerController.requestNewAddress { pub ->
+                            // Persist the new onion key/address, recompute my
+                            // CMC-ID, and tell contacts (signed address-update).
+                            val updated = cur.copy(
+                                faces = cur.faces.map {
+                                    if (it.id == face.id)
+                                        it.copy(onionKey = pub.newPrivateKey ?: it.onionKey,
+                                                onionAddress = pub.onion)
+                                    else it
+                                }
+                            )
+                            runCatching { manager.save(p, updated) }
+                            data = updated
+                            myCmId(updated)?.let { MessageService.sendAddressUpdate(it) }
+                        }
+                    }
                 },
                 onBack = { nav = Nav.Settings },
             )

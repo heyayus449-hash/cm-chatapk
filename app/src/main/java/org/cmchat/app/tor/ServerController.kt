@@ -109,6 +109,45 @@ object ServerController {
         }
     }
 
+    /**
+     * Rotate to a NEW onion address while keeping the OLD one registered for a
+     * ~24h overlap so no contact drops mid-switch. Both map to the same local
+     * server. The caller persists the new key/address and sends the signed
+     * address-update to contacts. Manual (triggered from My Server).
+     */
+    fun requestNewAddress(onNew: (OnionPublish) -> Unit) {
+        scope.launch {
+            val control = TorService.controlConnection() ?: run {
+                _status.value = ServerStatus.Failed("Tor not connected"); return@launch
+            }
+            val server = serverSocket ?: run {
+                _status.value = ServerStatus.Failed("server not running"); return@launch
+            }
+            val faceName = (status.value as? ServerStatus.Online)?.faceName ?: ""
+            val oldId = currentServiceId
+            runCatching {
+                val ports = mapOf(80 to "127.0.0.1:${server.localPort}")
+                val reply = control.addOnion("NEW:ED25519-V3", ports)
+                fun v(name: String) = reply.entries.firstOrNull { it.key.equals(name, true) }?.value
+                val addr = v("onionAddress") ?: throw IllegalStateException("no onionAddress")
+                val priv = v("onionPrivKey")
+                currentServiceId = addr
+                OnionPublish("$addr.onion", priv)
+            }.onSuccess { pub ->
+                _status.value = ServerStatus.Online(pub.onion, faceName, System.currentTimeMillis())
+                onNew(pub)
+                org.cmchat.app.diag.Diag.i("onion", "rotated to new address")
+                // Keep the old address alive ~24h, then remove it.
+                if (oldId != null) scope.launch {
+                    kotlinx.coroutines.delay(24 * 60 * 60_000L)
+                    runCatching { TorService.controlConnection()?.delOnion(oldId) }
+                }
+            }.onFailure {
+                org.cmchat.app.diag.Diag.e("onion", "address rotation failed", it)
+            }
+        }
+    }
+
     fun stop() {
         // Flip state synchronously so a following start()/restart() re-publishes.
         _status.value = ServerStatus.Off

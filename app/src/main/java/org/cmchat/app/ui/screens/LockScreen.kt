@@ -91,8 +91,8 @@ fun LockScreen(manager: VaultManager, onUnlocked: (String, VaultData) -> Unit) {
             when (phase) {
                 Phase.NEW_PIN -> "Create a 6-digit PIN  ·  Aa for letters"
                 Phase.CONFIRM_PIN -> "Confirm your PIN"
-                Phase.NAME_FACE -> "Name your first Face"
-                Phase.UNLOCK -> "Face: Wanderer"
+                Phase.NAME_FACE -> "Name your first Tag"
+                Phase.UNLOCK -> "Welcome back"
             },
             color = CmTextDim, fontFamily = Nunito, fontSize = 14.sp,
         )

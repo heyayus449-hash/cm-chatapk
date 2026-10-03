@@ -21,7 +21,7 @@ import org.cmchat.app.crypto.CmId
 import org.cmchat.app.ui.theme.*
 
 @Composable
-fun KnockScreen(onSend: (cmId: String, nickname: String) -> Unit, onBack: () -> Unit) {
+fun KnockScreen(myCmId: String?, onSend: (cmId: String, nickname: String) -> Unit, onBack: () -> Unit) {
     var cmId by remember { mutableStateOf("") }
     var nickname by remember { mutableStateOf("") }
     var error by remember { mutableStateOf<String?>(null) }
@@ -67,6 +67,7 @@ fun KnockScreen(onSend: (cmId: String, nickname: String) -> Unit, onBack: () -> 
                         val id = cmId.trim()
                         when {
                             CmId.decode(id) == null -> error = "That doesn't look like a CMC-ID"
+                            myCmId != null && id == myCmId -> error = "That's your own ID 🙂"
                             nickname.isBlank() -> error = "Pick a nickname"
                             else -> onSend(id, nickname.trim())
                         }
