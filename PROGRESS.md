@@ -212,6 +212,13 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Self-timer appearance (reverted to selector)
+- Per-message timer is a horizontal SELECTOR again (chips, not click-to-cycle),
+  labelled "Once:"; it applies only to the next message then resets to OFF.
+- General timer (Settings) still applies to ALL messages in ALL chats; a one-off
+  per-message pick overrides it just for that message (so global 60m + one-off 5m
+  coexist, as MessageService.sendText already resolves).
+
 ## Flashlight in place + Notes limits
 - Flashlight: tapping the dock circle toggles the torch IN PLACE (no screen); the
   circle fills while on and stays on as you use the app; off on wipe/exit.

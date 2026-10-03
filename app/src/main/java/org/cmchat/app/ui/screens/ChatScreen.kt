@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -225,22 +226,25 @@ fun ChatScreen(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp))
         }
 
-        // Per-message self-timer (cycling chip; defaults OFF, resets after send)
-        // + Buzz.
+        // Per-message self-timer SELECTOR (one-off for the next message only,
+        // resets to OFF after send) + Buzz. A general timer set in Settings still
+        // applies to every message; a per-message pick overrides it just once.
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Self-timer:", color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp)
-            Spacer(Modifier.width(8.dp))
-            Box(Modifier.clip(RoundedCornerShape(10.dp))
-                .background(if (selfTimer != SelfTimer.OFF) CmBlue else CmCard)
-                .clickable {
-                    val all = SelfTimer.entries
-                    selfTimer = all[(selfTimer.ordinal + 1) % all.size]
+            Text("Once:", color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp)
+            Spacer(Modifier.width(6.dp))
+            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                for (t in SelfTimer.entries) {
+                    val sel = t == selfTimer
+                    Box(Modifier.clip(RoundedCornerShape(10.dp))
+                        .background(if (sel) CmBlue else CmCard).clickable { selfTimer = t }
+                        .padding(horizontal = 10.dp, vertical = 5.dp)) {
+                        Text(t.label, color = if (sel) CmBackground else CmTextDim,
+                            fontFamily = Nunito, fontSize = 12.sp)
+                    }
                 }
-                .padding(horizontal = 12.dp, vertical = 5.dp)) {
-                Text(selfTimer.label, color = if (selfTimer != SelfTimer.OFF) CmBackground else CmTextDim,
-                    fontFamily = Nunito, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
-            Spacer(Modifier.weight(1f))
+            Spacer(Modifier.width(6.dp))
             val buzzLeft = chatCmId?.let { org.cmchat.app.buzz.BuzzPolicy.sendCooldownRemaining(it, now) } ?: 0L
             Box(Modifier.clip(RoundedCornerShape(10.dp))
                 .background(if (buzzLeft > 0) CmCard else CmOrange)
