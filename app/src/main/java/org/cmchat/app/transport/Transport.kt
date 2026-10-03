@@ -45,12 +45,56 @@ object Transport {
         return buf
     }
 
-    /** SOCKS5 through Tor to <onion>:port; hostname stays unresolved for Tor. */
+    /**
+     * SOCKS5 through Tor to <onion>:port; hostname stays unresolved for Tor.
+     * Onion-only guard: refuses any host that is not a valid v3 onion (fail
+     * closed — the app never touches clearnet). [onion] may be given with or
+     * without the ".onion" suffix.
+     */
     fun connectThroughTor(socksPort: Int, onion: String, port: Int, timeoutMs: Int = 60_000): Socket {
+        require(isOnionHost(onion)) { "refusing non-onion destination" }
+        val host = if (onion.endsWith(".onion")) onion else "$onion.onion"
         val proxy = Proxy(Proxy.Type.SOCKS, InetSocketAddress("127.0.0.1", socksPort))
         val socket = Socket(proxy)
-        socket.connect(InetSocketAddress.createUnresolved(onion, port), timeoutMs)
+        socket.connect(InetSocketAddress.createUnresolved(host, port), timeoutMs)
         return socket
+    }
+
+    /**
+     * A freshly published v3 onion descriptor takes ~30-90s to upload before
+     * anyone (even self) can reach it, surfacing as "SOCKS: Host unreachable".
+     * Retry with backoff up to [totalMs] instead of hard-failing. [onProgress]
+     * reports elapsed ms so the UI can show "connecting…". Throws the last error
+     * if it never connects.
+     */
+    fun connectThroughTorRetry(
+        socksPort: Int,
+        onion: String,
+        port: Int,
+        totalMs: Long = 90_000L,
+        onProgress: (Long) -> Unit = {},
+    ): Socket {
+        val deadline = System.currentTimeMillis() + totalMs
+        var wait = 2_000L
+        var last: Exception? = null
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                return connectThroughTor(socksPort, onion, port, timeoutMs = 30_000)
+            } catch (e: Exception) {
+                last = e
+                onProgress(System.currentTimeMillis() - (deadline - totalMs))
+                Thread.sleep(wait)
+                wait = (wait * 2).coerceAtMost(15_000L)
+            }
+        }
+        throw last ?: java.io.IOException("onion unreachable after ${totalMs}ms")
+    }
+
+    /** v3 onion host: 56 base32 chars, with or without the ".onion" suffix. */
+    fun isOnionHost(host: String): Boolean {
+        val h = host.removeSuffix(".onion")
+        return h.length == 56 &&
+            h.all { it in 'a'..'z' || it in 'A'..'Z' || it in '2'..'7' }
     }
 
     /** Local server behind the onion service; bound to loopback only. */

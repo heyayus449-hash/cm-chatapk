@@ -212,6 +212,21 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## URGENT Tor fixes (two-phone blockers)
+- Onion collision: publish ONCE per session. ServerController.start is
+  idempotent (skips if Online/Starting); stop() flips state synchronously so
+  restart() re-publishes. No second ADD_ONION of the same service.
+- "SOCKS: Host unreachable": a fresh v3 descriptor needs ~30-90s to upload.
+  Transport.connectThroughTorRetry retries with backoff (2->15s) up to 90s with
+  progress; self-test and outbound sends use it instead of hard-failing.
+- Onion-only guard (fail closed): connectThroughTor refuses any non-v3-onion
+  host; sends throw if Tor isn't Online (never touch clearnet). isOnionHost
+  unit-tested.
+- Foreground crash: TorService (and BuzzListenerService) call startForeground
+  IMMEDIATELY, API-branched, typed (FOREGROUND_SERVICE_TYPE_DATA_SYNC on API
+  29+); TorService re-asserts it in onStartCommand.
+- Device-only: actual descriptor upload / reachability needs a phone.
+
 ## Tools dock rework
 - Removed the Converter (dock = Calculator + Notes for now). Converter.kt and
   its toggle/tests deleted.

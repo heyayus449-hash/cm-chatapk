@@ -41,7 +41,15 @@ class BuzzListenerService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        startForeground(NOTIF_ID, buildNotification())
+        runCatching {
+            val notif = buildNotification()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIF_ID, notif,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+                )
+            } else startForeground(NOTIF_ID, notif)
+        }
         org.cmchat.app.diag.Diag.i("buzz", "scout listener up")
     }
 

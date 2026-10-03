@@ -55,7 +55,14 @@ object ServerController {
         existingOnionAddress: String? = null,
         onPublished: (OnionPublish) -> Unit,
     ) {
-        _status.value = ServerStatus.Starting
+        // Publish ONCE per session. If a service is already registered (Online)
+        // or a publish is in flight (Starting), reuse it — never ADD_ONION the
+        // same service twice (that collides on the address). restart() clears
+        // the state first, so it still re-publishes.
+        synchronized(this) {
+            if (_status.value is ServerStatus.Online || _status.value is ServerStatus.Starting) return
+            _status.value = ServerStatus.Starting
+        }
         scope.launch {
             val control = TorService.controlConnection()
             if (control == null) {
@@ -103,14 +110,15 @@ object ServerController {
     }
 
     fun stop() {
+        // Flip state synchronously so a following start()/restart() re-publishes.
+        _status.value = ServerStatus.Off
+        val id = currentServiceId
+        currentServiceId = null
+        val sock = serverSocket
+        serverSocket = null
         scope.launch {
-            runCatching {
-                currentServiceId?.let { TorService.controlConnection()?.delOnion(it) }
-            }
-            currentServiceId = null
-            runCatching { serverSocket?.close() }
-            serverSocket = null
-            _status.value = ServerStatus.Off
+            runCatching { id?.let { TorService.controlConnection()?.delOnion(it) } }
+            runCatching { sock?.close() }
         }
     }
 
@@ -124,14 +132,20 @@ object ServerController {
         start(faceName, existingOnionKey, existingOnionAddress, onPublished)
     }
 
-    /** Connect to my own onion through Tor; report OK/FAIL and elapsed ms. */
-    suspend fun selfTest(): Pair<Boolean, Long> = withContext(Dispatchers.IO) {
+    /**
+     * Connect to my own onion through Tor; report OK/FAIL and elapsed ms. A
+     * freshly published descriptor needs ~30-90s to upload, so this retries with
+     * backoff rather than hard-failing, and reports progress via [onProgress].
+     */
+    suspend fun selfTest(onProgress: (Long) -> Unit = {}): Pair<Boolean, Long> = withContext(Dispatchers.IO) {
         val onion = (status.value as? ServerStatus.Online)?.onion
             ?: return@withContext false to 0L
         val start = System.currentTimeMillis()
         val ok = runCatching {
-            Transport.connectThroughTor(TorService.socksPort(), onion.removeSuffix(".onion"), 80)
-                .use { it.isConnected }
+            Transport.connectThroughTorRetry(
+                TorService.socksPort(), onion.removeSuffix(".onion"), 80,
+                totalMs = 90_000L, onProgress = onProgress,
+            ).use { it.isConnected }
         }.getOrElse { org.cmchat.app.diag.Diag.e("onion", "self-test failed", it); false }
         val ms = System.currentTimeMillis() - start
         org.cmchat.app.diag.Diag.i("onion", "self-test ${if (ok) "OK" else "FAIL"} ${ms}ms")

@@ -108,7 +108,9 @@ class TorService : Service() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        startForeground(NOTIF_ID, buildNotification())
+        // Go foreground IMMEDIATELY, before any Tor work, or Android kills the
+        // service (ForegroundServiceDidNotStartInTime). API-branched + typed.
+        goForeground()
         _status.value = TorStatus.Starting
         LocalBroadcastManager.getInstance(this).registerReceiver(
             statusReceiver, IntentFilter(GpTorService.ACTION_STATUS)
@@ -118,9 +120,28 @@ class TorService : Service() {
         bound = bindService(intent, gpConnection, Context.BIND_AUTO_CREATE)
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Re-assert foreground on every (re)start, incl. START_STICKY restarts.
+        goForeground()
+        return START_STICKY
+    }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    /** startForeground, immediate and API-branched; typed on API 29+. */
+    private fun goForeground() {
+        runCatching {
+            val notif = buildNotification()
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                startForeground(
+                    NOTIF_ID, notif,
+                    android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+                )
+            } else {
+                startForeground(NOTIF_ID, notif)
+            }
+        }.onFailure { org.cmchat.app.diag.Diag.e("tor", "startForeground failed", it) }
+    }
 
     // The app was swiped from recents. Hand off to the lifecycle policy, which
     // either keeps a minimal buzz-listener alive or goes fully offline.

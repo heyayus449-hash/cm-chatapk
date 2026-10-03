@@ -16,6 +16,7 @@ import org.cmchat.app.crypto.CmIdData
 import org.cmchat.app.crypto.CryptoManager
 import org.cmchat.app.tor.ServerController
 import org.cmchat.app.tor.TorService
+import org.cmchat.app.tor.TorStatus
 import java.net.Socket
 
 /**
@@ -286,7 +287,11 @@ object MessageService {
     }
 
     private fun sendRaw(peer: CmIdData, sealed: ByteArray) {
-        Transport.connectThroughTor(TorService.socksPort(), peer.onion.removeSuffix(".onion"), 80)
+        // Fail closed: never attempt a connection unless Tor is up. Retry with
+        // backoff so a send right after publish (descriptor still uploading)
+        // doesn't hard-fail. Onion-only guard lives in Transport.
+        if (TorService.status.value !is TorStatus.Online) throw java.io.IOException("Tor offline")
+        Transport.connectThroughTorRetry(TorService.socksPort(), peer.onion.removeSuffix(".onion"), 80)
             .use { s -> Transport.writeFrame(s.getOutputStream(), sealed) }
     }
 
