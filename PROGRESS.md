@@ -212,6 +212,18 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Privacy PIN length + session window
+- Privacy & Safety gate now uses a SEPARATE user-chosen 4-8 digit PIN (digits
+  only), stored in the encrypted vault (VaultSettings.privacyPin). First visit
+  sets it (4-8 enforced); later visits enter it. It is distinct from the main
+  login passcode.
+- Session window (item 7, default OFF): "Stay unlocked for 6h" — after unlock,
+  returning to the app within 6h skips the re-lock (LifecycleController checks
+  AppSettings.sessionStillValid). In-process only: a cold start always re-asks,
+  because the derived key is never persisted to disk (kept this way on purpose —
+  caching keys for 6h on disk would be a real downgrade; say the word if you want
+  that trade-off instead). Choice persisted in VaultSettings.sessionWindow.
+
 ## Self-timer appearance (reverted to selector)
 - Per-message timer is a horizontal SELECTOR again (chips, not click-to-cycle),
   labelled "Once:"; it applies only to the next message then resets to OFF.

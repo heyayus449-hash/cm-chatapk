@@ -41,6 +41,8 @@ object LifecycleController {
      */
     fun onAppBackground() {
         if (org.cmchat.app.settings.AppSettings.stayReachable.value) return
+        // 6h session window: don't re-lock while it's still valid.
+        if (org.cmchat.app.settings.AppSettings.sessionStillValid()) return
         lockRequests.tryEmit(Unit)
     }
 

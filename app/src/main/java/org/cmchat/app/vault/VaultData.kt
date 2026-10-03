@@ -38,6 +38,10 @@ data class VaultSettings(
     val cerberusMinutes: Int = 90,
     val defaultSelfTimer: String = "30s",
     val textSize: Int = 0,
+    /** Separate 4-8 digit PIN gating the Privacy & Safety section (null = unset). */
+    val privacyPin: String? = null,
+    /** If true, a successful unlock stays valid for 6h (no re-ask on return). */
+    val sessionWindow: Boolean = false,
 )
 
 /** Everything persisted in the encrypted vault. Messages are NOT here. */

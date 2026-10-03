@@ -200,6 +200,9 @@ fun AppNav() {
             data = unlocked
             // Always start INVISIBLE on login.
             org.cmchat.app.settings.AppSettings.invisibleMode.value = true
+            // Session window (item 7): load the saved choice and stamp this unlock.
+            org.cmchat.app.settings.AppSettings.sessionWindowEnabled.value = unlocked.settings.sessionWindow
+            org.cmchat.app.settings.AppSettings.lastUnlockMs = System.currentTimeMillis()
             TorService.start(context)
             org.cmchat.app.guard.GuardController.init(context)
             nav = Nav.Circle
@@ -273,7 +276,24 @@ fun AppNav() {
             onOpenDiagnostics = { nav = Nav.Diagnostics },
             onExit = { org.cmchat.app.LifecycleController.exit(context) },
             onAbout = { nav = Nav.About },
-            verifyPin = { manager.verify(it) },
+            privacyPinSet = data?.settings?.privacyPin != null,
+            verifyPrivacyPin = { entered -> entered == data?.settings?.privacyPin },
+            onCreatePrivacyPin = { newPin ->
+                val p = pin; val cur = data
+                if (p != null && cur != null) {
+                    val updated = cur.copy(settings = cur.settings.copy(privacyPin = newPin))
+                    runCatching { manager.save(p, updated) }
+                    data = updated
+                }
+            },
+            onSessionWindow = { enabled ->
+                val p = pin; val cur = data
+                if (p != null && cur != null) {
+                    val updated = cur.copy(settings = cur.settings.copy(sessionWindow = enabled))
+                    runCatching { manager.save(p, updated) }
+                    data = updated
+                }
+            },
         )
         Nav.Diagnostics -> org.cmchat.app.ui.screens.DiagnosticsScreen(onBack = { nav = Nav.Settings })
         Nav.About -> org.cmchat.app.ui.screens.AboutScreen(onBack = { nav = Nav.Settings })

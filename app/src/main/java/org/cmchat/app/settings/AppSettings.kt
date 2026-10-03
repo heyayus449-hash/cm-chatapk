@@ -54,6 +54,21 @@ object AppSettings {
     val decoyAtTop = MutableStateFlow(true)
 
     /**
+     * 6-hour session window (item 7). When ON, a successful unlock stays valid
+     * for 6h so returning to the app doesn't re-ask (in-process only — a cold
+     * start always re-asks, since keys are never persisted to disk). Default OFF.
+     */
+    val sessionWindowEnabled = MutableStateFlow(false)
+    const val SESSION_WINDOW_MS = 6 * 60 * 60_000L
+
+    /** Monotonic time of the last successful unlock (RAM only). */
+    @Volatile
+    var lastUnlockMs: Long = 0L
+
+    fun sessionStillValid(now: Long = System.currentTimeMillis()): Boolean =
+        sessionWindowEnabled.value && lastUnlockMs > 0 && now - lastUnlockMs < SESSION_WINDOW_MS
+
+    /**
      * App context for posting notifications from background (buzz listener).
      * Application context only — never an Activity — so it cannot leak a window.
      */

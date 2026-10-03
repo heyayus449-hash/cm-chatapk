@@ -30,7 +30,10 @@ fun SettingsScreen(
     onExit: () -> Unit = {},
     onAbout: () -> Unit = {},
     onLanguage: () -> Unit = {},
-    verifyPin: (String) -> Boolean = { false },
+    privacyPinSet: Boolean = false,
+    verifyPrivacyPin: (String) -> Boolean = { false },
+    onCreatePrivacyPin: (String) -> Unit = {},
+    onSessionWindow: (Boolean) -> Unit = {},
 ) {
     var textSize by remember { mutableStateOf(0f) }
     var privacyUnlocked by remember { mutableStateOf(false) }
@@ -38,7 +41,9 @@ fun SettingsScreen(
 
     if (askPin) {
         PinGateDialog(
-            verify = verifyPin,
+            create = !privacyPinSet,
+            verify = verifyPrivacyPin,
+            onCreate = onCreatePrivacyPin,
             onPass = { privacyUnlocked = true; askPin = false },
             onDismiss = { askPin = false },
         )
@@ -70,7 +75,10 @@ fun SettingsScreen(
 
             GroupHeader("Privacy & Safety 🔒")
             if (!privacyUnlocked) {
-                Setting("Unlock Privacy & Safety", "tap", onClick = { askPin = true })
+                Setting(
+                    if (privacyPinSet) "Unlock Privacy & Safety" else "Set a Privacy PIN (4-8 digits)",
+                    "tap", onClick = { askPin = true },
+                )
             } else {
                 Setting("Cerberus · idle auto-wipe", "90 min")
                 Setting("Kill Timer", "not armed")
@@ -103,6 +111,7 @@ fun SettingsScreen(
                 Slider(value = textSize, onValueChange = { textSize = it }, valueRange = -6f..6f)
             }
             ToolToggle("Metadata scrub (strip EXIF/GPS)", org.cmchat.app.settings.AppSettings.metadataScrub)
+            SessionWindowRow(onSessionWindow)
             Setting("Diagnostics & troubleshoot", onClick = onOpenDiagnostics)
             Setting("Verify App Integrity")
             Setting("Change PIN")
@@ -121,29 +130,65 @@ fun SettingsScreen(
 }
 
 @Composable
+private fun SessionWindowRow(onChange: (Boolean) -> Unit) {
+    val on by org.cmchat.app.settings.AppSettings.sessionWindowEnabled.collectAsState()
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmCard)
+        .clickable {
+            val now = !on
+            org.cmchat.app.settings.AppSettings.sessionWindowEnabled.value = now
+            onChange(now)
+        }
+        .padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text("Stay unlocked for 6h", color = CmText, fontFamily = Nunito, fontSize = 14.sp)
+            Text("Don't re-ask the passcode for 6h after unlocking (this run only).",
+                color = CmTextFaint, fontFamily = Nunito, fontSize = 11.sp)
+        }
+        Text(if (on) "On" else "Off", color = if (on) CmGreen else CmTextDim,
+            fontFamily = Nunito, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
 private fun GroupHeader(title: String) {
     Text(title, color = CmBlue, fontFamily = Nunito, fontSize = 12.sp,
         fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 10.dp, start = 4.dp))
 }
 
 @Composable
-private fun PinGateDialog(verify: (String) -> Boolean, onPass: () -> Unit, onDismiss: () -> Unit) {
+private fun PinGateDialog(
+    create: Boolean,
+    verify: (String) -> Boolean,
+    onCreate: (String) -> Unit,
+    onPass: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     var pin by remember { mutableStateOf("") }
-    var err by remember { mutableStateOf(false) }
+    var err by remember { mutableStateOf<String?>(null) }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Enter your passcode") },
+        title = { Text(if (create) "Set a Privacy PIN (4-8 digits)" else "Enter Privacy PIN") },
         text = {
             Column {
                 OutlinedTextField(
-                    value = pin, onValueChange = { pin = it.take(64); err = false }, singleLine = true,
+                    // Digits only; 4-8 enforced on confirm.
+                    value = pin, onValueChange = { v -> pin = v.filter { it.isDigit() }.take(8); err = null },
+                    singleLine = true,
                     visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                        keyboardType = androidx.compose.ui.text.input.KeyboardType.NumberPassword),
                 )
-                if (err) Text("Wrong passcode", color = CmRed, fontFamily = Nunito, fontSize = 12.sp)
+                err?.let { Text(it, color = CmRed, fontFamily = Nunito, fontSize = 12.sp) }
             }
         },
         confirmButton = {
-            TextButton(onClick = { if (verify(pin)) onPass() else err = true }) { Text("Unlock") }
+            TextButton(onClick = {
+                if (create) {
+                    if (pin.length in 4..8) { onCreate(pin); onPass() } else err = "Use 4 to 8 digits"
+                } else {
+                    if (verify(pin)) onPass() else err = "Wrong PIN"
+                }
+            }) { Text(if (create) "Set" else "Unlock") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
     )
