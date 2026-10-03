@@ -212,6 +212,26 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Network hardening
+- Onion-only guard + fail-closed: done in the urgent Tor fixes (connectThroughTor
+  refuses non-onion; sends require Tor Online).
+- Bridges (obfs4 + Snowflake): DEFERRED by owner decision — needs PT binaries
+  (IPtProxy); no mock shipped. Revisit after the two-phone test.
+
+## Messaging
+- Delivery/read receipts DROPPED entirely: removed ACK frame send + handling and
+  MsgState.DELIVERED; no sent/delivered/read label is shown. SENDING/SENT/OFFLINE
+  are local-only, used just for the offline/retry affordance (not a receipt).
+- Messages RAM-only (unchanged). Input is multiline — Enter = newline, send only
+  via the button; capped at 100,000 chars.
+- Per-message self-timer: a cycling chip, defaults OFF and resets to OFF after
+  each send; a small RED duration shows under the message (no countdown) and it
+  vanishes when it expires.
+- General timer (all messages): SelfTimer now OFF/30s/5m/10m/30m/60m/120m/6h/
+  12h/24h; AppSettings.generalTimer (Settings-only, default OFF) applies to every
+  message unless a per-message timer overrides it; shown as a small red line
+  under the contact name.
+
 ## URGENT Tor fixes (two-phone blockers)
 - Onion collision: publish ONCE per session. ServerController.start is
   idempotent (skips if Online/Starting); stop() flips state synchronously so

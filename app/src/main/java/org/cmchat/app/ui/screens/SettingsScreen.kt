@@ -57,7 +57,7 @@ fun SettingsScreen(
             Setting("Circle")
             Setting("Cerberus · idle auto-wipe", "90 min")
             Setting("Kill Timer", "not armed")
-            Setting("Self-Timer (per message)", "30s")
+            GeneralTimerRow()
             ToolToggle("Tool: Calculator", org.cmchat.app.tools.ToolsState.calcEnabled)
             ToolToggle("Tool: Notes", org.cmchat.app.tools.ToolsState.notesEnabled)
             Setting("My CMC-ID / QR", onClick = onOpenMyId)
@@ -81,6 +81,23 @@ fun SettingsScreen(
             Text("Wipe Everything Now", color = CmRed, fontFamily = Nunito,
                 fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
+    }
+}
+
+@Composable
+private fun GeneralTimerRow() {
+    val t by org.cmchat.app.settings.AppSettings.generalTimer.collectAsState()
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmCard)
+        .clickable {
+            val all = org.cmchat.app.chat.SelfTimer.entries
+            org.cmchat.app.settings.AppSettings.generalTimer.value = all[(t.ordinal + 1) % all.size]
+        }
+        .padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text("General timer (all messages)", color = CmText, fontFamily = Nunito, fontSize = 14.sp,
+            modifier = Modifier.weight(1f))
+        Text(if (t == org.cmchat.app.chat.SelfTimer.OFF) "Off" else t.label,
+            color = if (t == org.cmchat.app.chat.SelfTimer.OFF) CmTextDim else CmRed,
+            fontFamily = Nunito, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

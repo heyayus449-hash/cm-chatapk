@@ -39,7 +39,7 @@ object ChatStore {
     }
 
     fun addTheirs(chatId: String, id: String, text: String, timer: SelfTimer) {
-        val m = ChatMessage(id, mine = false, text = text, state = MsgState.DELIVERED,
+        val m = ChatMessage(id, mine = false, text = text, state = MsgState.SENT,
             selfTimer = timer, seenAt = System.currentTimeMillis())
         update(chatId) { it.copy(messages = it.messages + m) }
         touchPeer(chatId)
@@ -63,7 +63,7 @@ object ChatStore {
             teamHour = value,
             messages = it.messages + ChatMessage(
                 newId(), mine = false, text = "$byName modified Team Hour",
-                state = MsgState.DELIVERED, system = true,
+                state = MsgState.SENT, system = true,
             ),
         )
     }

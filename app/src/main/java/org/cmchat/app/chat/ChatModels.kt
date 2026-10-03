@@ -1,14 +1,28 @@
 package org.cmchat.app.chat
 
-/** Delivery state of an outgoing message. */
-enum class MsgState { SENDING, SENT, DELIVERED, OFFLINE }
+/**
+ * Local-only send state. There are NO delivery/read receipts (dropped): a peer
+ * never tells us "delivered" or "read". SENDING/SENT/OFFLINE are purely our own
+ * knowledge of whether the outbound socket write succeeded, used only for the
+ * offline/retry affordance — never shown as a receipt.
+ */
+enum class MsgState { SENDING, SENT, OFFLINE }
 
-/** Self-destruct options for a message. */
+/**
+ * Self-destruct durations, shared by the per-message timer and the general
+ * timer. OFF = never. A message disappears this long after it is SEEN.
+ */
 enum class SelfTimer(val label: String, val millis: Long?) {
     OFF("off", null),
     S30("30s", 30_000L),
     M5("5m", 5 * 60_000L),
-    H1("1h", 60 * 60_000L);
+    M10("10m", 10 * 60_000L),
+    M30("30m", 30 * 60_000L),
+    M60("60m", 60 * 60_000L),
+    M120("120m", 120 * 60_000L),
+    H6("6h", 6 * 60 * 60_000L),
+    H12("12h", 12 * 60 * 60_000L),
+    H24("24h", 24 * 60 * 60_000L);
 
     companion object {
         fun fromLabel(l: String): SelfTimer = entries.firstOrNull { it.label == l } ?: OFF

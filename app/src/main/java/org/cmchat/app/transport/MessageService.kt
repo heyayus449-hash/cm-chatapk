@@ -120,6 +120,13 @@ object MessageService {
     fun sendText(chatCmId: String, text: String, timer: SelfTimer) {
         // Messaging a person re-opens their "Once only" buzzes.
         org.cmchat.app.buzz.BuzzPolicy.onMessagedContact(chatCmId)
+        // Per-message timer wins; otherwise fall back to the general timer.
+        val effective = if (timer != SelfTimer.OFF) timer
+            else org.cmchat.app.settings.AppSettings.generalTimer.value
+        sendTextResolved(chatCmId, text, effective)
+    }
+
+    private fun sendTextResolved(chatCmId: String, text: String, timer: SelfTimer) {
         val msg = ChatStore.addMine(chatCmId, text, timer)
         val c = crypto; val sec = mySec; val peer = contacts[chatCmId]
         if (c == null || sec == null || peer == null) {
@@ -233,8 +240,8 @@ object MessageService {
                 val t = runCatching {
                     Messages.json.decodeFromString(TextPayload.serializer(), String(body))
                 }.getOrNull() ?: return
+                // No delivery/read receipt is ever sent back (receipts dropped).
                 ChatStore.addTheirs(chatCmId, t.id, t.text, SelfTimer.fromLabel(t.selfTimer))
-                sendAck(peer, t.id)
                 // Generic "Notification" unless that chat is already on screen.
                 if (activeChatCmId != chatCmId) {
                     org.cmchat.app.settings.AppSettings.appContext?.let { ctx ->
@@ -242,7 +249,6 @@ object MessageService {
                     }
                 }
             }
-            FrameType.ACK -> ChatStore.setState(chatCmId, String(body), MsgState.DELIVERED)
             FrameType.STATUS -> {
                 val st = runCatching {
                     Messages.json.decodeFromString(StatusPayload.serializer(), String(body))
@@ -272,11 +278,6 @@ object MessageService {
         org.cmchat.app.settings.AppSettings.appContext?.let { ctx ->
             org.cmchat.app.notify.Notifier.activity(ctx, names[chatCmId])
         }
-    }
-
-    private fun sendAck(peer: CmIdData, msgId: String) {
-        val c = crypto ?: return; val sec = mySec ?: return
-        scope.launch { runCatching { sendBox(c, sec, peer, FrameType.ACK, msgId.toByteArray()) } }
     }
 
     // ---- wire helpers ------------------------------------------------------

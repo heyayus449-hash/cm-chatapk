@@ -12,6 +12,12 @@ object AppSettings {
     val shareLastSeen = MutableStateFlow(true)
 
     /**
+     * General self-timer applied to ALL messages (Settings-only). Default OFF.
+     * A per-message timer, when set, overrides this for that one message.
+     */
+    val generalTimer = MutableStateFlow(org.cmchat.app.chat.SelfTimer.OFF)
+
+    /**
      * Invisible mode: refuse all incoming connections so any probe (message,
      * retry, buzz) sees me as OFFLINE. I can still start outbound conversations.
      * Default OFF.

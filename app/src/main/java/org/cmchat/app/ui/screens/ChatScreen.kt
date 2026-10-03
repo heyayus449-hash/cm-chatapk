@@ -89,6 +89,14 @@ fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
                 })
         }
 
+        // General timer (all messages), set in Settings: small red line.
+        val generalTimer by org.cmchat.app.settings.AppSettings.generalTimer.collectAsState()
+        if (generalTimer != SelfTimer.OFF) {
+            Text("timer ${generalTimer.label}", color = CmRed, fontFamily = Nunito, fontSize = 11.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp))
+        }
+
         // Peer status + last seen (never your own).
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -157,18 +165,20 @@ fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
             }
         }
 
-        // Self-timer chip + Buzz.
+        // Per-message self-timer (cycling chip; defaults OFF, resets after send)
+        // + Buzz.
         Row(Modifier.fillMaxWidth().padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
             Text("Self-timer:", color = CmTextDim, fontFamily = Nunito, fontSize = 12.sp)
             Spacer(Modifier.width(8.dp))
-            for (t in SelfTimer.entries) {
-                val sel = t == selfTimer
-                Box(Modifier.padding(end = 6.dp).clip(RoundedCornerShape(10.dp))
-                    .background(if (sel) CmBlue else CmCard).clickable { selfTimer = t }
-                    .padding(horizontal = 10.dp, vertical = 5.dp)) {
-                    Text(t.label, color = if (sel) CmBackground else CmTextDim,
-                        fontFamily = Nunito, fontSize = 12.sp)
+            Box(Modifier.clip(RoundedCornerShape(10.dp))
+                .background(if (selfTimer != SelfTimer.OFF) CmBlue else CmCard)
+                .clickable {
+                    val all = SelfTimer.entries
+                    selfTimer = all[(selfTimer.ordinal + 1) % all.size]
                 }
+                .padding(horizontal = 12.dp, vertical = 5.dp)) {
+                Text(selfTimer.label, color = if (selfTimer != SelfTimer.OFF) CmBackground else CmTextDim,
+                    fontFamily = Nunito, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.weight(1f))
             val buzzLeft = chatCmId?.let { org.cmchat.app.buzz.BuzzPolicy.sendCooldownRemaining(it, now) } ?: 0L
@@ -184,25 +194,27 @@ fun ChatScreen(contactName: String, chatCmId: String?, onBack: () -> Unit) {
             }
         }
 
-        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(14.dp), verticalAlignment = Alignment.Bottom) {
             Box(Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(CmCard)
                 .padding(horizontal = 16.dp, vertical = 12.dp)) {
                 if (input.isEmpty()) Text("Message…", color = CmTextDim, fontFamily = Nunito, fontSize = 15.sp)
                 BasicTextField(
-                    value = input, onValueChange = { input = it },
-                    singleLine = true,
+                    // Enter = newline; send only via the button. Cap 100,000 chars.
+                    value = input, onValueChange = { if (it.length <= 100_000) input = it },
+                    singleLine = false, maxLines = 6,
                     textStyle = TextStyle(color = CmText, fontFamily = Nunito, fontSize = 15.sp),
                     cursorBrush = SolidColor(CmBlue),
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 140.dp),
                 )
             }
             Spacer(Modifier.width(8.dp))
             Box(Modifier.size(44.dp).clip(CircleShape).background(CmBlue).clickable {
-                val text = input.trim()
+                val text = input.trimEnd()
                 if (text.isNotEmpty()) {
                     if (chatCmId != null) MessageService.sendText(chatCmId, text, selfTimer)
                     else ChatStore.addMine(chatId, text, selfTimer)
                     input = ""
+                    selfTimer = SelfTimer.OFF   // per-message timer resets to 0
                 }
             }, contentAlignment = Alignment.Center) {
                 Text("➤", color = CmBackground, fontSize = 18.sp)
@@ -221,12 +233,10 @@ private fun Bubble(m: ChatMessage) {
                 .padding(horizontal = 14.dp, vertical = 10.dp)) {
                 Text(m.text, color = if (m.mine) CmBackground else CmText, fontFamily = Nunito, fontSize = 15.sp)
             }
-            if (m.mine) {
-                val label = when (m.state) {
-                    MsgState.SENDING -> "sending…"; MsgState.SENT -> "sent"
-                    MsgState.DELIVERED -> "delivered"; MsgState.OFFLINE -> "offline"
-                }
-                Text(label, color = CmTextFaint, fontFamily = Nunito, fontSize = 10.sp,
+            // No delivery/read receipts. Only a small RED self-timer duration
+            // (no countdown) under a timed message; it vanishes when it expires.
+            if (m.selfTimer != SelfTimer.OFF) {
+                Text(m.selfTimer.label, color = CmRed, fontFamily = Nunito, fontSize = 10.sp,
                     modifier = Modifier.padding(top = 2.dp, end = 4.dp))
             }
         }
