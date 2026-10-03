@@ -23,7 +23,14 @@ object ToolsState {
 
     private var checkSeq = 0L
 
+    /** Max checklist items (beyond this it gets laggy). */
+    const val MAX_CHECKS = 10
+
+    /** Max Notes scratchpad length. */
+    const val MAX_NOTES_CHARS = 10_000
+
     fun addCheck() {
+        if (checks.value.size >= MAX_CHECKS) return
         checks.value = checks.value + NoteCheck(id = ++checkSeq, text = "")
     }
 

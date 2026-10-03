@@ -212,6 +212,12 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Flashlight in place + Notes limits
+- Flashlight: tapping the dock circle toggles the torch IN PLACE (no screen); the
+  circle fills while on and stays on as you use the app; off on wipe/exit.
+- Notes: checklist capped at 10 items ("Max 10 checks"); scratchpad capped at
+  10,000 chars.
+
 ## Lock screen: alphanumeric in place
 - The "Aa" toggle now shows the passcode field ON the same lock screen (no new
   window) with the system keyboard auto-focused; Done submits; "123" returns to

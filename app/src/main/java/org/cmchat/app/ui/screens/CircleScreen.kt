@@ -151,11 +151,19 @@ fun CircleScreen(
         // Active tools: transparent circles with a symbol glyph, centred and
         // evenly spaced regardless of count.
         if (calcOn || notesOn || flashOn) {
+            val context = androidx.compose.ui.platform.LocalContext.current
+            val torchOn by org.cmchat.app.tools.Flashlight.on.collectAsState()
             Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(28.dp, Alignment.CenterHorizontally)) {
-                if (calcOn) DockTool("Calculator", "calculator", "▦", onOpenTool)
-                if (notesOn) DockTool("Notes", "notes", "☑", onOpenTool)
-                if (flashOn) DockTool("Flashlight", "flashlight", "☀", onOpenTool)
+                if (calcOn) DockTool("Calculator", "▦", onClick = { onOpenTool("calculator") })
+                if (notesOn) DockTool("Notes", "☑", onClick = { onOpenTool("notes") })
+                if (flashOn) DockTool(
+                    // Flashlight toggles the torch IN PLACE (no screen); stays on
+                    // while you keep using the app.
+                    if (torchOn) "Torch on" else "Flashlight", "☀",
+                    active = torchOn,
+                    onClick = { org.cmchat.app.tools.Flashlight.toggle(context) },
+                )
             }
         }
 
@@ -169,17 +177,18 @@ fun CircleScreen(
 }
 
 @Composable
-private fun DockTool(label: String, key: String, glyph: String, onOpen: (String) -> Unit) {
+private fun DockTool(label: String, glyph: String, active: Boolean = false, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         // Circle, fully transparent fill (the old black square was a bug), thin
-        // orange ring, symbol glyph inside.
+        // orange ring, symbol glyph inside. `active` (torch on) fills it.
         Box(
             Modifier.size(52.dp).clip(CircleShape)
+                .then(if (active) Modifier.background(CmOrange) else Modifier)
                 .border(1.5.dp, CmOrange, CircleShape)
-                .clickable { onOpen(key) },
+                .clickable { onClick() },
             contentAlignment = Alignment.Center,
         ) {
-            Text(glyph, color = CmOrange, fontFamily = Nunito, fontSize = 22.sp)
+            Text(glyph, color = if (active) Color.White else CmOrange, fontFamily = Nunito, fontSize = 22.sp)
         }
         Spacer(Modifier.height(4.dp))
         Text(label, color = CmTextDim, fontFamily = Nunito, fontSize = 11.sp)

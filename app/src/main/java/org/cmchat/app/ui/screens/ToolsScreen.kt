@@ -158,15 +158,20 @@ private fun NotesUi() {
             .clip(RoundedCornerShape(12.dp)).background(CmCard).padding(12.dp)) {
             if (notes.isEmpty()) Text("Scratchpad…", color = CmTextDim, fontFamily = Nunito, fontSize = 15.sp)
             BasicTextField(
-                value = notes, onValueChange = { ToolsState.notes.value = it },
+                value = notes,
+                onValueChange = { if (it.length <= ToolsState.MAX_NOTES_CHARS) ToolsState.notes.value = it },
                 textStyle = TextStyle(color = CmText, fontFamily = Nunito, fontSize = 15.sp),
                 cursorBrush = SolidColor(CmBlue), modifier = Modifier.fillMaxWidth(),
             )
         }
 
-        Box(Modifier.clip(RoundedCornerShape(12.dp)).background(CmBlue)
-            .clickable { ToolsState.addCheck() }.padding(horizontal = 16.dp, vertical = 10.dp)) {
-            Text("+ Add check", color = CmBackground, fontFamily = Nunito,
+        val atMax = checks.size >= ToolsState.MAX_CHECKS
+        Box(Modifier.clip(RoundedCornerShape(12.dp))
+            .background(if (atMax) CmCard else CmBlue)
+            .clickable(enabled = !atMax) { ToolsState.addCheck() }
+            .padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Text(if (atMax) "Max ${ToolsState.MAX_CHECKS} checks" else "+ Add check",
+                color = if (atMax) CmTextDim else CmBackground, fontFamily = Nunito,
                 fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
         }
 
