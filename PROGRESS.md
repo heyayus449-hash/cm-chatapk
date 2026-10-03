@@ -212,6 +212,11 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Team Hour (persisted)
+- ContactRec.teamHour (encrypted in the vault, per contact) survives logout.
+  Editable in the chat ("Set Team clock" / tap to edit), seeded into the thread
+  on open, saved back to the vault on change.
+
 ## Guardians / safety + Settings groups
 - Settings reorganised into groups: Tags · Chats · [PIN-gated] Privacy & Safety ·
   Server · Tools · System.

@@ -237,6 +237,19 @@ fun AppNav() {
             contactName = n.name,
             chatCmId = n.cmId,
             onBack = { nav = Nav.Circle },
+            teamHour = data?.contacts?.firstOrNull { it.cmId == n.cmId }?.teamHour,
+            onSetTeamHour = { value ->
+                val p = pin; val cur = data
+                if (p != null && cur != null && n.cmId != null) {
+                    val updated = cur.copy(
+                        contacts = cur.contacts.map {
+                            if (it.cmId == n.cmId) it.copy(teamHour = value.ifEmpty { null }) else it
+                        }
+                    )
+                    runCatching { manager.save(p, updated) }
+                    data = updated
+                }
+            },
             onRename = { newName ->
                 val p = pin; val cur = data
                 if (p != null && cur != null && n.cmId != null) {

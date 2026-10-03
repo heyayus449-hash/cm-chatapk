@@ -39,10 +39,17 @@ fun ChatScreen(
     chatCmId: String?,
     onBack: () -> Unit,
     onRename: (String) -> Unit = {},
+    teamHour: String? = null,
+    onSetTeamHour: (String) -> Unit = {},
 ) {
     val chatId = chatCmId ?: contactName
     var renaming by remember { mutableStateOf(false) }
     var newName by remember { mutableStateOf(contactName) }
+    var editingTeam by remember { mutableStateOf(false) }
+    var teamInput by remember { mutableStateOf(teamHour ?: "") }
+
+    // Load the persisted Team clock into this thread when the chat opens.
+    LaunchedEffect(chatId, teamHour) { ChatStore.setTeamHourValue(chatId, teamHour) }
     val threads by ChatStore.threads.collectAsState()
     val thread = threads[chatId] ?: org.cmchat.app.chat.ChatThread()
 
@@ -160,10 +167,30 @@ fun ChatScreen(
             }
         }
 
-        // Team Hour line.
-        thread.teamHour?.let {
-            Text("Team Hour: $it", color = CmBlue, fontFamily = Nunito, fontSize = 12.sp,
-                modifier = Modifier.padding(top = 8.dp, start = 16.dp))
+        // Team clock line (tap to edit; persisted per-contact in the vault).
+        Row(Modifier.fillMaxWidth().padding(top = 8.dp, start = 16.dp, end = 16.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            if (editingTeam && chatCmId != null) {
+                BasicTextField(
+                    value = teamInput, onValueChange = { teamInput = it.take(40) }, singleLine = true,
+                    textStyle = TextStyle(color = CmBlue, fontFamily = Nunito, fontSize = 12.sp),
+                    cursorBrush = SolidColor(CmBlue), modifier = Modifier.weight(1f),
+                )
+                Text("Save", color = CmGreen, fontFamily = Nunito, fontSize = 12.sp,
+                    modifier = Modifier.clickable {
+                        onSetTeamHour(teamInput.trim())
+                        ChatStore.setTeamHourValue(chatId, teamInput.trim().ifEmpty { null })
+                        editingTeam = false
+                    })
+            } else {
+                Text(
+                    thread.teamHour?.let { "Team clock: $it" } ?: "Set Team clock",
+                    color = if (thread.teamHour != null) CmBlue else CmTextDim,
+                    fontFamily = Nunito, fontSize = 12.sp,
+                    modifier = Modifier.clickable(enabled = chatCmId != null) {
+                        teamInput = thread.teamHour ?: ""; editingTeam = true
+                    })
+            }
         }
 
         val invisible by org.cmchat.app.settings.AppSettings.invisibleMode.collectAsState()

@@ -74,6 +74,9 @@ object ChatStore {
     fun setPeerStatus(chatId: String, word: String, colorArgb: Long) =
         update(chatId) { it.copy(peerStatus = word, peerStatusColor = colorArgb) }
 
+    /** Seed/set the Team clock without a system message (used when loading it). */
+    fun setTeamHourValue(chatId: String, value: String?) = update(chatId) { it.copy(teamHour = value) }
+
     fun setTeamHour(chatId: String, value: String, byName: String) = update(chatId) {
         it.copy(
             teamHour = value,

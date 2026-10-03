@@ -29,6 +29,8 @@ data class ContactRec(
     val colorArgb: Long,
     val faceId: String,
     val cmId: String? = null,
+    /** Per-contact Team clock, persisted (encrypted) so it survives logout. */
+    val teamHour: String? = null,
 )
 
 @Serializable
