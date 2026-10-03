@@ -39,6 +39,8 @@ data class ChatMessage(
     val createdAt: Long = System.currentTimeMillis(),
     val seenAt: Long? = null,
     val system: Boolean = false,
+    /** Arrived while Invisible: shown as a red italic "Missed Message" once Online. */
+    val missed: Boolean = false,
 )
 
 /**

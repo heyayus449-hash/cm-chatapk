@@ -38,6 +38,13 @@ object AppSettings {
     val showBuzzSenderName = MutableStateFlow(false)
 
     /**
+     * Keep the FULL server running after the app is closed, until the user taps
+     * Exit. Default OFF. When ON it also forces Cerberus OFF and the Kill Timer
+     * OFF (so they can't wipe while you're deliberately staying reachable).
+     */
+    val stayReachable = MutableStateFlow(false)
+
+    /**
      * App context for posting notifications from background (buzz listener).
      * Application context only — never an Activity — so it cannot leak a window.
      */

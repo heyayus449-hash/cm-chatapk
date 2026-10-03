@@ -259,7 +259,10 @@ object MessageService {
                     Messages.json.decodeFromString(TextPayload.serializer(), String(body))
                 }.getOrNull() ?: return
                 // No delivery/read receipt is ever sent back (receipts dropped).
-                ChatStore.addTheirs(chatCmId, t.id, t.text, SelfTimer.fromLabel(t.selfTimer))
+                // While Invisible, the message is held as "missed" (orange dot);
+                // the sender learns nothing, and it surfaces once we go Online.
+                val invisible = org.cmchat.app.settings.AppSettings.invisibleMode.value
+                ChatStore.addTheirs(chatCmId, t.id, t.text, SelfTimer.fromLabel(t.selfTimer), missed = invisible)
                 // Generic "Notification" unless that chat is already on screen.
                 if (activeChatCmId != chatCmId) {
                     org.cmchat.app.settings.AppSettings.appContext?.let { ctx ->

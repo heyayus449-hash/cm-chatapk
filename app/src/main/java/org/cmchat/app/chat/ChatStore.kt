@@ -12,6 +12,8 @@ data class ChatThread(
     val peerLastSeen: Long? = null,
     val peerStatus: String? = null,
     val peerStatusColor: Long = 0,
+    /** Orange unread dot: something arrived while invisible, not yet viewed. */
+    val unread: Boolean = false,
 )
 
 /**
@@ -38,11 +40,25 @@ object ChatStore {
         return m
     }
 
-    fun addTheirs(chatId: String, id: String, text: String, timer: SelfTimer) {
+    fun addTheirs(chatId: String, id: String, text: String, timer: SelfTimer, missed: Boolean = false) {
+        // A missed (invisible) message isn't "seen" yet, so its self-timer
+        // doesn't start until the user goes Online and views it.
         val m = ChatMessage(id, mine = false, text = text, state = MsgState.SENT,
-            selfTimer = timer, seenAt = System.currentTimeMillis())
-        update(chatId) { it.copy(messages = it.messages + m) }
+            selfTimer = timer, seenAt = if (missed) null else System.currentTimeMillis(), missed = missed)
+        update(chatId) { it.copy(messages = it.messages + m, unread = it.unread || missed) }
         touchPeer(chatId)
+    }
+
+    /** Clear the orange unread dot (chat viewed while Online). */
+    fun markRead(chatId: String) = update(chatId) { it.copy(unread = false) }
+
+    /** Going Online: start self-timers on missed messages now that they're seen. */
+    fun markMissedSeen(now: Long = System.currentTimeMillis()) {
+        _threads.value = _threads.value.mapValues { (_, t) ->
+            t.copy(messages = t.messages.map {
+                if (it.missed && it.seenAt == null) it.copy(seenAt = now) else it
+            })
+        }
     }
 
     fun setState(chatId: String, msgId: String, state: MsgState) {

@@ -60,6 +60,10 @@ fun ChatScreen(
     // Mark this chat as the one on screen (so a message here doesn't also notify).
     DisposableEffect(chatCmId) {
         MessageService.activeChatCmId = chatCmId
+        // Viewing the chat while Online clears the orange unread dot.
+        if (chatCmId != null && !org.cmchat.app.settings.AppSettings.invisibleMode.value) {
+            ChatStore.markRead(chatCmId)
+        }
         onDispose { if (MessageService.activeChatCmId == chatCmId) MessageService.activeChatCmId = null }
     }
 
@@ -122,16 +126,9 @@ fun ChatScreen(
                 modifier = Modifier.fillMaxWidth().padding(bottom = 2.dp))
         }
 
-        // Peer status + last seen (never your own).
+        // Last seen only — there is NO online indicator on friends, ever.
         Row(Modifier.fillMaxWidth().padding(bottom = 8.dp),
             horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            val status = thread.peerStatus
-            if (status != null) {
-                Box(Modifier.size(9.dp).clip(CircleShape).background(androidx.compose.ui.graphics.Color(thread.peerStatusColor)))
-                Spacer(Modifier.width(6.dp))
-                Text(status, color = CmTextDim, fontFamily = Nunito, fontSize = 13.sp)
-                Spacer(Modifier.width(10.dp))
-            }
             LastSeen.bucket(thread.peerLastSeen, now)?.let {
                 Text(it, color = CmTextFaint, fontFamily = Nunito, fontSize = 12.sp)
             }
@@ -169,12 +166,16 @@ fun ChatScreen(
                 modifier = Modifier.padding(top = 8.dp, start = 16.dp))
         }
 
+        val invisible by org.cmchat.app.settings.AppSettings.invisibleMode.collectAsState()
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())
             .padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (thread.messages.isEmpty()) {
                 Text("No messages yet.", color = CmTextFaint, fontFamily = Nunito, fontSize = 13.sp)
             }
             for (m in thread.messages) {
+                // While Invisible, messages that arrived are held back (shown as a
+                // prompt below); nothing of them is revealed yet.
+                if (invisible && m.missed) continue
                 when {
                     m.system -> Text(m.text, color = CmTextFaint, fontFamily = Nunito, fontSize = 12.sp,
                         modifier = Modifier.fillMaxWidth(), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
@@ -188,6 +189,13 @@ fun ChatScreen(
                     else -> Bubble(m)
                 }
             }
+        }
+        // Invisible + something waiting: the bottom prompt (sender learns nothing).
+        if (invisible && thread.messages.any { it.missed }) {
+            Text("Change status to Online to receive messages",
+                color = CmOrange, fontFamily = Nunito, fontSize = 12.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp))
         }
 
         // Per-message self-timer (cycling chip; defaults OFF, resets after send)
@@ -253,10 +261,16 @@ private fun Bubble(m: ChatMessage) {
     Row(Modifier.fillMaxWidth(),
         horizontalArrangement = if (m.mine) Arrangement.End else Arrangement.Start) {
         Column(horizontalAlignment = if (m.mine) Alignment.End else Alignment.Start) {
+            if (m.missed) {
+                Text("Missed Message", color = CmRed, fontFamily = Nunito, fontSize = 11.sp,
+                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                    modifier = Modifier.padding(bottom = 2.dp))
+            }
             Box(Modifier.widthIn(max = 260.dp).clip(RoundedCornerShape(16.dp))
                 .background(if (m.mine) CmBlue.copy(alpha = 0.85f) else CmCard.copy(alpha = 0.85f))
                 .padding(horizontal = 14.dp, vertical = 10.dp)) {
-                Text(m.text, color = if (m.mine) CmBackground else CmText, fontFamily = Nunito, fontSize = 15.sp)
+                Text(m.text, color = if (m.mine) CmBackground else CmText, fontFamily = Nunito, fontSize = 15.sp,
+                    fontStyle = if (m.missed) androidx.compose.ui.text.font.FontStyle.Italic else null)
             }
             // No delivery/read receipts. Only a small RED self-timer duration
             // (no countdown) under a timed message; it vanishes when it expires.

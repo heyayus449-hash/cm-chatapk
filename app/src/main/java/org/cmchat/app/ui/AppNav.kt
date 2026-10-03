@@ -63,6 +63,17 @@ fun AppNav() {
         }
     }
 
+    // Re-lock on background / Exit: wipe the vault-unlock material from RAM.
+    LaunchedEffect(Unit) {
+        org.cmchat.app.LifecycleController.lockRequests.collect {
+            if (nav != Nav.Lock) {
+                pin = null
+                data = null
+                nav = Nav.Lock
+            }
+        }
+    }
+
     if (showWipeConfirm) {
         AlertDialog(
             onDismissRequest = { showWipeConfirm = false },
@@ -132,18 +143,14 @@ fun AppNav() {
         }
     }
 
-    // Once Tor is ONLINE, publish the active Face's onion service (unless
-    // Invisible mode is on). If Tor generated a fresh onion key, persist it.
-    // Invisible mode stops the server so every incoming probe sees us OFFLINE;
-    // outbound is unaffected. Turning it off re-publishes.
-    val invisible by org.cmchat.app.settings.AppSettings.invisibleMode.collectAsState()
-    LaunchedEffect(torStatus, data, invisible) {
+    // Once Tor is ONLINE, publish the active Tag's onion service. The server
+    // stays up even while Invisible — messages still arrive but are held as
+    // "missed" (no receipts, so Invisible is indistinguishable to a sender).
+    LaunchedEffect(torStatus, data) {
         val d = data ?: return@LaunchedEffect
         val p = pin ?: return@LaunchedEffect
         val face = d.faces.firstOrNull() ?: return@LaunchedEffect
-        if (invisible) {
-            ServerController.stop()
-        } else if (torStatus is TorStatus.Online) {
+        if (torStatus is TorStatus.Online) {
             ServerController.start(face.name, face.onionKey, face.onionAddress) { pub ->
                 val keyChanged = pub.newPrivateKey != null && face.onionKey == null
                 val addrChanged = face.onionAddress != pub.onion
@@ -169,13 +176,20 @@ fun AppNav() {
         Nav.Lock -> LockScreen(manager) { enteredPin, unlocked ->
             pin = enteredPin
             data = unlocked
+            // Always start INVISIBLE on login.
+            org.cmchat.app.settings.AppSettings.invisibleMode.value = true
             TorService.start(context)
             org.cmchat.app.guard.GuardController.init(context)
             nav = Nav.Circle
         }
         Nav.Circle -> {
+            val threads by ChatStore.threads.collectAsState()
             val contacts = data?.contacts?.takeIf { it.isNotEmpty() }
-                ?.map { Contact(it.name, Color(it.colorArgb), unread = false, cmId = it.cmId) }
+                ?.map {
+                    Contact(it.name, Color(it.colorArgb),
+                        unread = it.cmId?.let { id -> threads[id]?.unread } ?: false,
+                        cmId = it.cmId)
+                }
                 ?: sampleCircle
             CircleScreen(
                 contacts = contacts,
@@ -210,6 +224,7 @@ fun AppNav() {
             onOpenMyId = { nav = Nav.MyId },
             onWipeEverything = { showWipeConfirm = true },
             onOpenDiagnostics = { nav = Nav.Diagnostics },
+            onExit = { org.cmchat.app.LifecycleController.exit(context) },
         )
         Nav.Diagnostics -> org.cmchat.app.ui.screens.DiagnosticsScreen(onBack = { nav = Nav.Settings })
         Nav.MyId -> MyIdScreen(cmId = myCmId(data), onBack = { nav = Nav.Settings })

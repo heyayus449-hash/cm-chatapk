@@ -24,6 +24,7 @@ fun SettingsScreen(
     onOpenMyId: () -> Unit = {},
     onWipeEverything: () -> Unit = {},
     onOpenDiagnostics: () -> Unit = {},
+    onExit: () -> Unit = {},
 ) {
     var textSize by remember { mutableStateOf(0f) }
     Column(Modifier.fillMaxSize().background(CmBackground)) {
@@ -57,6 +58,7 @@ fun SettingsScreen(
             Setting("Circle")
             Setting("Cerberus · idle auto-wipe", "90 min")
             Setting("Kill Timer", "not armed")
+            StayReachableRow()
             GeneralTimerRow()
             ToolToggle("Tool: Calculator", org.cmchat.app.tools.ToolsState.calcEnabled)
             ToolToggle("Tool: Notes", org.cmchat.app.tools.ToolsState.notesEnabled)
@@ -75,12 +77,42 @@ fun SettingsScreen(
             Spacer(Modifier.height(4.dp))
         }
 
+        Box(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, top = 8.dp)
+            .clip(RoundedCornerShape(14.dp)).background(CmCard).clickable { onExit() }.padding(14.dp),
+            contentAlignment = Alignment.Center) {
+            Text("Exit (stop server, clear RAM, log out)", color = CmText, fontFamily = Nunito,
+                fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+        }
         Box(Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(14.dp))
             .background(CmRed.copy(alpha = 0.15f)).clickable { onWipeEverything() }.padding(14.dp),
             contentAlignment = Alignment.Center) {
             Text("Wipe Everything Now", color = CmRed, fontFamily = Nunito,
                 fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
         }
+    }
+}
+
+@Composable
+private fun StayReachableRow() {
+    val on by org.cmchat.app.settings.AppSettings.stayReachable.collectAsState()
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(CmCard)
+        .clickable {
+            val now = !on
+            org.cmchat.app.settings.AppSettings.stayReachable.value = now
+            if (now) {
+                // Staying reachable forces the auto-wipers off.
+                org.cmchat.app.guard.GuardController.setCerberusArmed(false)
+                org.cmchat.app.guard.GuardController.cancelKillTimer()
+            }
+        }
+        .padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text("Stay reachable in background", color = CmText, fontFamily = Nunito, fontSize = 14.sp)
+            Text("Keeps the server up after close (forces Cerberus + Kill off)",
+                color = CmTextFaint, fontFamily = Nunito, fontSize = 11.sp)
+        }
+        Text(if (on) "On" else "Off", color = if (on) CmGreen else CmTextDim,
+            fontFamily = Nunito, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 

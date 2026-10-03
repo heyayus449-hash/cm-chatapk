@@ -31,4 +31,11 @@ class MainActivity : ComponentActivity() {
         // Returning to the foreground resumes normal messaging (ends buzz-only).
         org.cmchat.app.LifecycleController.onAppForeground()
     }
+
+    // Backgrounded (minimised): re-lock + wipe vault-unlock material from RAM,
+    // unless "stay reachable" is on. The service keeps running so we stay online.
+    override fun onStop() {
+        super.onStop()
+        org.cmchat.app.LifecycleController.onAppBackground()
+    }
 }

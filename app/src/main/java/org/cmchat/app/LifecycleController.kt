@@ -30,9 +30,28 @@ object LifecycleController {
     var listening = false
         private set
 
+    /** Emitted when the app is backgrounded and should re-lock (require PIN). */
+    val lockRequests = kotlinx.coroutines.flow.MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /**
+     * App moved to the background (minimised). Unless "stay reachable" is on,
+     * re-lock the UI and wipe the vault-unlock material from RAM (PIN + decrypted
+     * vault held in the UI layer) so returning needs the PIN. The service stays
+     * running, so minimised = still online and Cerberus keeps counting.
+     */
+    fun onAppBackground() {
+        if (org.cmchat.app.settings.AppSettings.stayReachable.value) return
+        lockRequests.tryEmit(Unit)
+    }
+
     /** The user swiped the app away. */
     fun onAppClosed(context: Context) {
         val ctx = context.applicationContext
+        // Stay reachable: keep the full server + RAM alive until the user Exits.
+        if (org.cmchat.app.settings.AppSettings.stayReachable.value) {
+            Diag.i("life", "closed but staying reachable")
+            return
+        }
         // RAM is dropped either way.
         ChatStore.clearAll()
         ToolsState.clear()
@@ -61,6 +80,17 @@ object LifecycleController {
             listening = false
             Diag.i("life", "foreground -> normal")
         }
+    }
+
+    /** Exit: stop the server, clear RAM, drop the listener, and log out. */
+    fun exit(context: Context) {
+        val ctx = context.applicationContext
+        ChatStore.clearAll()
+        ToolsState.clear()
+        BuzzPolicy.clear()
+        Notifier.clearAll(ctx)
+        fullClose(ctx)
+        lockRequests.tryEmit(Unit)
     }
 
     /** Fully go dark: stop the server and Tor, and drop the listener. */

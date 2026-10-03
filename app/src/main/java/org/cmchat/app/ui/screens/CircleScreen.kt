@@ -51,15 +51,34 @@ fun CircleScreen(
     val knocks by MessageService.incomingKnocks.collectAsState()
     val calcOn by ToolsState.calcEnabled.collectAsState()
     val notesOn by ToolsState.notesEnabled.collectAsState()
+    val invisible by org.cmchat.app.settings.AppSettings.invisibleMode.collectAsState()
     Column(Modifier.fillMaxSize().background(CmBackground)) {
         Row(
             Modifier.fillMaxWidth().padding(20.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CmChatLogo(size = 24)
-            Spacer(Modifier.width(12.dp))
+            // Bigger logo, smaller status text.
+            CmChatLogo(size = 32)
+            Spacer(Modifier.width(10.dp))
             TorIndicator(torStatus)
             Spacer(Modifier.weight(1f))
+            // My status: Online / Invisible. Tap to toggle; going Online starts
+            // self-timers on any messages that arrived while Invisible.
+            Box(
+                Modifier.clip(RoundedCornerShape(16.dp))
+                    .background(if (invisible) CmCard else CmGreen.copy(alpha = 0.2f))
+                    .clickable {
+                        val nowInvisible = !invisible
+                        org.cmchat.app.settings.AppSettings.invisibleMode.value = nowInvisible
+                        if (!nowInvisible) org.cmchat.app.chat.ChatStore.markMissedSeen()
+                    }
+                    .padding(horizontal = 12.dp, vertical = 7.dp),
+            ) {
+                Text(if (invisible) "Invisible" else "Online",
+                    color = if (invisible) CmTextDim else CmGreen,
+                    fontFamily = Nunito, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.width(10.dp))
             // Suggestive tappable orange "+" (the "Knock" word/bubble is gone).
             Box(
                 Modifier.size(38.dp).clip(CircleShape).background(CmOrange)
@@ -174,8 +193,8 @@ private fun TorIndicator(status: TorStatus) {
         is TorStatus.Offline -> CmTextDim to "Offline"
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(9.dp).clip(CircleShape).background(color))
-        Spacer(Modifier.width(6.dp))
-        Text(label, color = color, fontFamily = Nunito, fontSize = 13.sp)
+        Box(Modifier.size(8.dp).clip(CircleShape).background(color))
+        Spacer(Modifier.width(5.dp))
+        Text(label, color = color, fontFamily = Nunito, fontSize = 11.sp)
     }
 }

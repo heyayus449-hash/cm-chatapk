@@ -212,6 +212,25 @@ for the exact click-by-click steps). Until the four keystore secrets are
 added in GitHub, release APKs build **unsigned** (`app-release-unsigned.apk`)
 and nothing secret is stored in the repo. Test with the debug APK meanwhile.
 
+## Presence / lifecycle
+- Start INVISIBLE every login (invisibleMode=true on unlock). Online/Invisible
+  toggle in the Circle header; going Online calls ChatStore.markMissedSeen (self-
+  timers start then).
+- NO online indicator on friends: removed the peer status dot/word in chat; only
+  "last seen recently" remains.
+- Invisible behaviour redefined: the server stays UP (no longer stops). Incoming
+  messages are held as "missed" — orange unread dot on the contact; opening the
+  chat shows "Change status to Online to receive messages" (content hidden,
+  sender learns nothing — no receipts exist). Going Online reveals them as italic
+  red "Missed Message"; the dot clears when viewed Online.
+- "Stay reachable in background" (default OFF): keeps the full server up after
+  close until Exit, and forces Cerberus + Kill Timer OFF.
+- Exit (Settings): stop server, clear RAM, log out (re-lock).
+- Lock on background: onStop re-locks + wipes the vault-unlock material (PIN +
+  decrypted vault) from the UI layer unless stay-reachable is on; the service
+  keeps running so minimised = still online + Cerberus counting; swipe-away =
+  offline + clear RAM (unless stay-reachable). First-run explainer already shown.
+
 ## Identity / contacts
 - "Faces" -> "Tag" in the UI (first-run naming, Settings row, My Server label).
   CMC-ID prefix cmc1: unchanged.
